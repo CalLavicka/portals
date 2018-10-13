@@ -28,6 +28,16 @@ struct Scene {
 		Transform *prev_sibling = nullptr;
 		Transform *next_sibling = nullptr;
 		//Generally, you shouldn't manipulate the above pointers directly.
+	
+	    //physical properties
+		glm::vec2 forward = glm::vec2(1.0f, 0.0f);
+		glm::vec2 speed = glm::vec2(2.0f, 15.0f);
+		std::vector< glm::vec2 > bounding_box = std::vector< glm::vec2 > {  // just put some dummy data in
+			glm::vec2(0.0f, 0.0f),
+			glm::vec2(0.0f, 0.0f),
+			glm::vec2(0.0f, 0.0f),
+			glm::vec2(0.0f, 0.0f)
+		};
 
 		//Add transform to the child list of 'parent', before child 'before' (or at end, if 'before' is not given):
 		void set_parent(Transform *parent, Transform *before = nullptr);
