@@ -224,6 +224,7 @@ Load< Scene > scene(LoadTagDefault, [](){
 });
 
 GameMode::GameMode() {
+	players[0].portal_transform = cube_transform;
 }
 
 GameMode::~GameMode() {
@@ -261,11 +262,44 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	return false;
 }
 
+bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const &window_size) {
+	if (event.device >= 2) {
+		return false;
+	}
+
+	printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
+	Portal &portal = players[event.device];
+	float &rot_speed = rot_speeds[event.device];
+	if (event.type == MANYMOUSE_EVENT_RELMOTION) {
+		if (event.item == 0) {
+			portal.move(glm::vec2(1.0f * event.value / window_size.x, 0));
+			return true;
+		} else if (event.item == 1) {
+			portal.move(glm::vec2(0, 1.0f * event.value / window_size.y));
+			return true;
+		}
+	}else if (event.type == MANYMOUSE_EVENT_BUTTON) {
+		if (event.value == 0) {
+			rot_speed = 0;
+			return true;
+		} else if (event.item == 0) {
+			rot_speed = 1;
+			return true;
+		} else if (event.item == 1) {
+			rot_speed = 0;
+			return true;
+		}
+	}
+	return false;
+}
+
 void GameMode::update(float elapsed) {
 	camera_parent_transform->rotation = glm::angleAxis(camera_spin, glm::vec3(0.0f, 0.0f, 1.0f));
 	spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
     
 	//compute simple movement of the Cube
+	
+	/*
 	float g = -9.81;
 	if (cube_transform->position.z > 0.0f) {
 		cube_transform->speed.y += g * elapsed;
@@ -274,7 +308,7 @@ void GameMode::update(float elapsed) {
 	} else {
 		cube_transform->speed = glm::vec2(2.0f, 15.0f);
 		cube_transform->position = glm::vec3(-4.0f, -7.0f, 0.5f);
-	}
+	}*/
 }
 
 //GameMode will render to some offscreen framebuffer(s).

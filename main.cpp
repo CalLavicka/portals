@@ -119,8 +119,25 @@ int main(int argc, char **argv) {
 	Sound::init();
 
 	//------------ init manymouse ------------
-	int num_mice = ManyMouse_Init();
-	std::cout << "Number of mice connected: " << num_mice << std::endl;
+	int available_mice = ManyMouse_Init();
+
+    if (available_mice < 0)
+    {
+        printf("Error initializing ManyMouse!\n");
+    }
+
+    printf("ManyMouse driver: %s\n", ManyMouse_DriverName());
+
+    if (available_mice == 0)
+    {
+        printf("No mice detected!\n");
+    }
+
+    for (int i = 0; i < available_mice; i++)
+    {
+        const char *name = ManyMouse_DeviceName(i);
+        printf("#%d: %s\n", i, name);
+    }
 
 	//------------ load assets --------------
 
@@ -168,6 +185,15 @@ int main(int argc, char **argv) {
 					break;
 				}
 			}
+
+			static ManyMouseEvent event;
+			while (ManyMouse_PollEvent(&event) != 0) {
+				// handle mouse inputs
+				if (Mode::current && Mode::current->handle_mouse_event(event, window_size)) {
+					// mode handled event
+				}
+			}
+
 			if (!Mode::current) break;
 		}
 

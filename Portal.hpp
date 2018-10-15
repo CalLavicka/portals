@@ -2,13 +2,17 @@
 
 #include <glm/glm.hpp>
 
-using namespace glm;
+#include "Scene.hpp"
 
 struct Portal {
-	vec2 position;
-	vec2 normal;
+	Portal();
+
+	glm::vec2 position;
+	glm::vec2 normal;
 	
-	void update_position(vec2 const &new_postion);
+	void move(glm::vec2 const &vec);
 	void rotate(float const &to_rot);
+
+	Scene::Transform *portal_transform;
 };
 
