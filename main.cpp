@@ -29,6 +29,12 @@
 #include <memory>
 #include <algorithm>
 
+// Many mouse: multiple mice input
+#include "manymouse/manymouse.h"
+
+//extern "C" int ManyMouse_Init();
+//extern "C" void ManyMouse_Quit();
+
 int main(int argc, char **argv) {
 #ifdef _WIN32
 	try {
@@ -111,6 +117,10 @@ int main(int argc, char **argv) {
 
 	//------------ init sound output --------------
 	Sound::init();
+
+	//------------ init manymouse ------------
+	int num_mice = ManyMouse_Init();
+	std::cout << "Number of mice connected: " << num_mice << std::endl;
 
 	//------------ load assets --------------
 
@@ -198,6 +208,8 @@ int main(int argc, char **argv) {
 
 	SDL_DestroyWindow(window);
 	window = NULL;
+
+	ManyMouse_Quit();
 
 	return 0;
 
