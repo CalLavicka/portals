@@ -73,6 +73,7 @@ CLIENT_NAMES =
 	texture_program
 	depth_program
 	Scene
+    Save
 	Mode
 	GameMode
 	MenuMode
