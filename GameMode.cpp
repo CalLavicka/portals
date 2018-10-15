@@ -141,6 +141,7 @@ Scene::Transform *camera_parent_transform = nullptr;
 Scene::Camera *camera = nullptr;
 Scene::Transform *spot_parent_transform = nullptr;
 Scene::Lamp *spot = nullptr;
+Scene::Transform *cube_transform = nullptr;
 
 Load< Scene > scene(LoadTagDefault, [](){
 	Scene *ret = new Scene;
@@ -192,7 +193,10 @@ Load< Scene > scene(LoadTagDefault, [](){
 			if (spot_parent_transform) throw std::runtime_error("Multiple 'SpotParent' transforms in scene.");
 			spot_parent_transform = t;
 		}
-
+		if (t->name == "Cube") {
+			if (cube_transform) throw std::runtime_error("Multiple 'Cube' transforms in scene.");
+			cube_transform = t;
+		}
 	}
 	if (!camera_parent_transform) throw std::runtime_error("No 'CameraParent' transform in scene.");
 	if (!spot_parent_transform) throw std::runtime_error("No 'SpotParent' transform in scene.");
@@ -260,6 +264,17 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 void GameMode::update(float elapsed) {
 	camera_parent_transform->rotation = glm::angleAxis(camera_spin, glm::vec3(0.0f, 0.0f, 1.0f));
 	spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
+    
+	//compute simple movement of the Cube
+	float g = -9.81;
+	if (cube_transform->position.z > 0.0f) {
+		cube_transform->speed.y += g * elapsed;
+		cube_transform->position.x += cube_transform->speed.x * elapsed;
+		cube_transform->position.z += cube_transform->speed.y * elapsed;
+	} else {
+		cube_transform->speed = glm::vec2(2.0f, 15.0f);
+		cube_transform->position = glm::vec3(-4.0f, -7.0f, 0.5f);
+	}
 }
 
 //GameMode will render to some offscreen framebuffer(s).
