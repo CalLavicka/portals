@@ -12,6 +12,8 @@ void Portal::move(vec2 const &vec) {
     this->position = this->position + vec;
 
     this->portal_transform->position = vec3(this->position, 0);
+    printf("X: %f, Y: %f, Z: %f\n", portal_transform->position.x,
+    portal_transform->position.y, portal_transform->position.z);
 }
 
 void Portal::rotate(float const &to_rot) {
