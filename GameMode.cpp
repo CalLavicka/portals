@@ -360,22 +360,12 @@ void GameMode::update(float elapsed) {
 	float g = -9.81;
 	if (cube_transform->position.z > 0.0f) {
 		cube_transform->speed.y += g * elapsed;
-<<<<<<< HEAD
-	} else {  // bounce back when touches z = 0.0f
-	    float coeff_of_restitution = 0.9f;
-		cube_transform->speed = glm::vec2(coeff_of_restitution * cube_transform->speed.x, -coeff_of_restitution * cube_transform->speed.y);
-		cube_transform->position.z = 0.0f;
-	}
-	cube_transform->position.x += cube_transform->speed.x * elapsed;
-	cube_transform->position.z += cube_transform->speed.y * elapsed;
-=======
 		cube_transform->position.x += cube_transform->speed.x * elapsed;
 		cube_transform->position.z += cube_transform->speed.y * elapsed;
 	} else {
 		cube_transform->speed = glm::vec2(2.0f, 15.0f);
 		cube_transform->position = glm::vec3(-4.0f, -7.0f, 0.5f);
 	}*/
->>>>>>> master
 }
 
 //GameMode will render to some offscreen framebuffer(s).
