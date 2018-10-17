@@ -3,6 +3,7 @@
 #include "MenuMode.hpp"
 #include "Load.hpp"
 #include "MeshBuffer.hpp"
+#include "Save.hpp"
 #include "Scene.hpp"
 #include "gl_errors.hpp" //helper for dumpping OpenGL error messages
 #include "check_fb.hpp" //helper for checking currently bound OpenGL framebuffer
@@ -33,6 +34,18 @@ Load< GLuint > meshes_for_texture_program(LoadTagDefault, [](){
 
 Load< GLuint > meshes_for_depth_program(LoadTagDefault, [](){
 	return new GLuint(meshes->make_vao_for_program(depth_program->program));
+});
+
+Load< MeshBuffer > vegetable_meshes(LoadTagDefault, [](){
+	return new MeshBuffer(data_path("vegetables.pnct"));
+});
+
+Load< GLuint > vegetable_meshes_for_texture_program(LoadTagDefault, [](){
+	return new GLuint(vegetable_meshes->make_vao_for_program(texture_program->program));
+});
+
+Load< GLuint > vegetable_meshes_for_depth_program(LoadTagDefault, [](){
+	return new GLuint(vegetable_meshes->make_vao_for_program(depth_program->program));
 });
 
 //used for fullscreen passes:
@@ -71,6 +84,7 @@ Load< GLuint > blur_program(LoadTagDefault, [](){
 		"		fract(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))),\n"
 		"		fract(dot(gl_FragCoord.xy ,vec2(96.3869,-27.5796)))\n"
 		"	));\n"
+		"   ofs = vec2(0,0);\n"
 		//do a four-pixel average to blur:
 		"	vec4 blur =\n"
 		"		+ 0.25 * texture(tex, (gl_FragCoord.xy + vec2(ofs.x,ofs.y)) / textureSize(tex, 0))\n"
@@ -142,9 +156,12 @@ Scene::Transform *spot_parent_transform = nullptr;
 Scene::Lamp *spot = nullptr;
 Scene::Transform *cube_transform = nullptr;
 
+Scene::Transform *p0_trans = nullptr;
+Scene::Transform *p1_trans = nullptr;
+
 Load< Scene > scene(LoadTagDefault, [](){
 	Scene *ret = new Scene;
-
+	
 	//pre-build some program info (material) blocks to assign to each object:
 	Scene::Object::ProgramInfo texture_program_info;
 	texture_program_info.program = texture_program->program;
@@ -181,7 +198,7 @@ Load< Scene > scene(LoadTagDefault, [](){
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
 	});
-
+	
 	//look up camera parent transform:
 	for (Scene::Transform *t = ret->first_transform; t != nullptr; t = t->alloc_next) {
 		if (t->name == "CameraParent") {
@@ -219,10 +236,51 @@ Load< Scene > scene(LoadTagDefault, [](){
 	}
 	if (!spot) throw std::runtime_error("No 'Spot' spotlight in scene.");
 
+
+	// Adjust for veges
+	texture_program_info.vao = *vegetable_meshes_for_texture_program;
+	depth_program_info.vao = *vegetable_meshes_for_depth_program;
+
+	// Add in portal
+	p0_trans = ret->new_transform();
+	p1_trans = ret->new_transform();
+
+	{ // Portal 1
+		Scene::Object *obj = ret->new_object(p0_trans);
+		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
+
+		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
+
+		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal1");
+		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+	}
+	
+	{ // Portal 2
+		Scene::Object *obj = ret->new_object(p1_trans);
+		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
+
+		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
+
+		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal2");
+		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+	}
+	camera_parent_transform->position = glm::vec3(0,0,2);
 	return ret;
 });
 
 GameMode::GameMode() {
+	players[0].portal_transform = p0_trans;
+	players[1].portal_transform = p1_trans;
 }
 
 GameMode::~GameMode() {
@@ -246,17 +304,63 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 	}
 
+    //TODO change this later to actually do stuff with loaded data
+    if(evt.type == SDL_KEYDOWN){
+        if(evt.key.keysym.scancode == SDL_SCANCODE_SPACE){
+            uint32_t level = 1;
+            std::vector <uint32_t> scores = {1, 2, 3, 4, 5, 0};
+            save(level, scores);
+
+            SaveData loaded = LoadSave(level);
+        }
+    }
+
+	return false;
+}
+
+bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const &window_size) {
+	if (event.device >= 2) {
+		return false;
+	}
+
+	printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
+	Portal &portal = players[event.device];
+	float &rot_speed = rot_speeds[event.device];
+	float sensitivity = sensitivities[event.device];
+	if (event.type == MANYMOUSE_EVENT_RELMOTION) {
+		if (event.item == 0) {
+			portal.move(glm::vec2(sensitivity * event.value / window_size.x, 0));
+			return true;
+		} else if (event.item == 1) {
+			portal.move(glm::vec2(0, -sensitivity * event.value / window_size.y));
+			return true;
+		}
+	}else if (event.type == MANYMOUSE_EVENT_BUTTON) {
+		if (event.value == 0) {
+			rot_speed = 0;
+			return true;
+		} else if (event.item == 0) {
+			rot_speed = 1;
+			return true;
+		} else if (event.item == 1) {
+			rot_speed = 0;
+			return true;
+		}
+	}
 	return false;
 }
 
 void GameMode::update(float elapsed) {
-	camera_parent_transform->rotation = glm::angleAxis(camera_spin, glm::vec3(0.0f, 0.0f, 1.0f));
+	camera_parent_transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.0f, 0.0f, 0.0f));
 	spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
     
 	//compute simple movement of the Cube
+	
+	/*
 	float g = -9.81;
 	if (cube_transform->position.z > 0.0f) {
 		cube_transform->speed.y += g * elapsed;
+<<<<<<< HEAD
 	} else {  // bounce back when touches z = 0.0f
 	    float coeff_of_restitution = 0.9f;
 		cube_transform->speed = glm::vec2(coeff_of_restitution * cube_transform->speed.x, -coeff_of_restitution * cube_transform->speed.y);
@@ -264,6 +368,14 @@ void GameMode::update(float elapsed) {
 	}
 	cube_transform->position.x += cube_transform->speed.x * elapsed;
 	cube_transform->position.z += cube_transform->speed.y * elapsed;
+=======
+		cube_transform->position.x += cube_transform->speed.x * elapsed;
+		cube_transform->position.z += cube_transform->speed.y * elapsed;
+	} else {
+		cube_transform->speed = glm::vec2(2.0f, 15.0f);
+		cube_transform->position = glm::vec3(-4.0f, -7.0f, 0.5f);
+	}*/
+>>>>>>> master
 }
 
 //GameMode will render to some offscreen framebuffer(s).
@@ -295,12 +407,12 @@ struct Framebuffers {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glBindTexture(GL_TEXTURE_2D, 0);
-	
+
 			if (depth_rb == 0) glGenRenderbuffers(1, &depth_rb);
 			glBindRenderbuffer(GL_RENDERBUFFER, depth_rb);
 			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size.x, size.y);
 			glBindRenderbuffer(GL_RENDERBUFFER, 0);
-	
+
 			if (fb == 0) glGenFramebuffers(1, &fb);
 			glBindFramebuffer(GL_FRAMEBUFFER, fb);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
@@ -333,7 +445,7 @@ struct Framebuffers {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glBindTexture(GL_TEXTURE_2D, 0);
-	
+
 			if (shadow_fb == 0) glGenFramebuffers(1, &shadow_fb);
 			glBindFramebuffer(GL_FRAMEBUFFER, shadow_fb);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadow_color_tex, 0);

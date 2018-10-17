@@ -11,6 +11,9 @@
 
 #include <vector>
 
+#include "manymouse/manymouse.h"
+#include "Portal.hpp"
+
 // The 'GameMode' mode is the main gameplay mode:
 
 struct GameMode : public Mode {
@@ -22,6 +25,8 @@ struct GameMode : public Mode {
 	//The function should return 'true' if it handled the event.
 	virtual bool handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) override;
 
+	virtual bool handle_mouse_event(ManyMouseEvent const &evt, glm::uvec2 const &window_size) override;
+
 	//update is called at the start of a new frame, after events are handled:
 	virtual void update(float elapsed) override;
 
@@ -30,4 +35,8 @@ struct GameMode : public Mode {
 
 	float camera_spin = 0.0f;
 	float spot_spin = 0.0f;
+
+	Portal players[2];
+	float rot_speeds[2] = {0,0};
+	float sensitivities[2] = {10.f,10.f};
 };

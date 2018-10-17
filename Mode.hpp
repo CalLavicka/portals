@@ -5,6 +5,8 @@
 
 #include <memory>
 
+#include "manymouse/manymouse.h"
+
 class Mode : public std::enable_shared_from_this< Mode > {
 public:
 	virtual ~Mode() { }
@@ -13,6 +15,8 @@ public:
 	// (note that this might be many times per frame or never)
 	//The function should return 'true' if it handled the event.
 	virtual bool handle_event(SDL_Event const &, glm::uvec2 const &window_size) { return false; }
+
+	virtual bool handle_mouse_event(ManyMouseEvent const &, glm::uvec2 const &window_size) { return false; }
 
 	//update is called at the start of a new frame, after events are handled:
 	// 'elapsed' is time in seconds since the last call to 'update'

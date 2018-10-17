@@ -1,0 +1,20 @@
+objs/
+*.blend[0-9]
+dist/main
+dist/main.exe
+dist/client
+dist/client.exe
+dist/server
+dist/server.exe
+dist/SDL2.dll
+kit-libs-win
+kit-libs-osx
+kit-libs-linux
+<<<<<<< HEAD
+.vscode
+=======
+
+# Yen's to-ignore list
+run_exports
+.vscode/
+>>>>>>> 1284f2ff39eeb0f32b3457f6ff0ec6ce08b7577f

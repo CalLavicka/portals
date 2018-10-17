@@ -29,6 +29,12 @@
 #include <memory>
 #include <algorithm>
 
+// Many mouse: multiple mice input
+#include "manymouse/manymouse.h"
+
+//extern "C" int ManyMouse_Init();
+//extern "C" void ManyMouse_Quit();
+
 int main(int argc, char **argv) {
 #ifdef _WIN32
 	try {
@@ -112,6 +118,27 @@ int main(int argc, char **argv) {
 	//------------ init sound output --------------
 	Sound::init();
 
+	//------------ init manymouse ------------
+	int available_mice = ManyMouse_Init();
+
+    if (available_mice < 0)
+    {
+        printf("Error initializing ManyMouse!\n");
+    }
+
+    printf("ManyMouse driver: %s\n", ManyMouse_DriverName());
+
+    if (available_mice == 0)
+    {
+        printf("No mice detected!\n");
+    }
+
+    for (int i = 0; i < available_mice; i++)
+    {
+        const char *name = ManyMouse_DeviceName(i);
+        printf("#%d: %s\n", i, name);
+    }
+
 	//------------ load assets --------------
 
 	call_load_functions();
@@ -158,6 +185,15 @@ int main(int argc, char **argv) {
 					break;
 				}
 			}
+
+			static ManyMouseEvent event;
+			while (ManyMouse_PollEvent(&event) != 0) {
+				// handle mouse inputs
+				if (Mode::current && Mode::current->handle_mouse_event(event, window_size)) {
+					// mode handled event
+				}
+			}
+
 			if (!Mode::current) break;
 		}
 
@@ -198,6 +234,8 @@ int main(int argc, char **argv) {
 
 	SDL_DestroyWindow(window);
 	window = NULL;
+
+	ManyMouse_Quit();
 
 	return 0;
 

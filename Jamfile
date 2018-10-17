@@ -73,6 +73,7 @@ CLIENT_NAMES =
 	texture_program
 	depth_program
 	Scene
+    Save
 	Mode
 	GameMode
 	MenuMode
@@ -80,6 +81,16 @@ CLIENT_NAMES =
 	MeshBuffer
 	draw_text
 	Sound
+	Portal
+	;
+
+C_NAMES =
+	manymouse/manymouse
+	manymouse/linux_evdev
+	manymouse/macosx_hidutilities
+	manymouse/macosx_hidmanager
+	manymouse/windows_wminput
+	manymouse/x11_xinput2
 	;
 
 if $(OS) = NT {
@@ -90,8 +101,9 @@ if $(OS) = NT {
 LOCATE_TARGET = objs ; #put objects in 'objs' directory
 Objects $(CLIENT_NAMES:S=.cpp) ;
 #Objects $(SERVER_NAMES:S=.cpp) ;
+Objects $(C_NAMES:S=.c) ;
 Objects $(COMMON_NAMES:S=.cpp) ;
 
 LOCATE_TARGET = dist ; #put main in 'dist' directory
-MainFromObjects main : $(CLIENT_NAMES:S=$(SUFOBJ)) $(COMMON_NAMES:S=$(SUFOBJ)) ;
+MainFromObjects main : $(CLIENT_NAMES:S=$(SUFOBJ)) $(COMMON_NAMES:S=$(SUFOBJ)) $(C_NAMES:S=$(SUFOBJ)) ;
 #MainFromObjects server : $(SERVER_NAMES:S=$(SUFOBJ)) $(COMMON_NAMES:S=$(SUFOBJ)) ;
