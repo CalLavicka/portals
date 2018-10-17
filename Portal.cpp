@@ -5,7 +5,14 @@ using namespace glm;
 
 Portal::Portal() {
     this->position = vec2();
-    this->normal = vec2(1.f, 0.f);
+    this->normal = vec2(0.0f, 1.0f);
+
+    this->boundingbox = new BoundingBox(12.0f, 0.9f);
+    this->update_boundingbox();  // set boundingbox position
+}
+
+Portal::~Portal() {
+    delete this->boundingbox;
 }
 
 void Portal::move(vec2 const &vec) {
@@ -23,4 +30,8 @@ void Portal::rotate(float const &to_rot) {
     normal = newnormal;
 
     this->portal_transform->rotation = angleAxis(atan2f(normal.y, normal.x), vec3(0,0,1));
+}
+
+void Portal::update_boundingbox() {
+    this->boundingbox->update_origin(this->position, this->normal);
 }
