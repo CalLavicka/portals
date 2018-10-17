@@ -175,7 +175,7 @@ Load< Scene > scene(LoadTagDefault, [](){
 	depth_program_info.vao = *meshes_for_depth_program;
 	depth_program_info.mvp_mat4  = depth_program->object_to_clip_mat4;
 
-
+	/*
 	//load transform hierarchy:
 	ret->load(data_path("vignette.scene"), [&](Scene &s, Scene::Transform *t, std::string const &m){
 		Scene::Object *obj = s.new_object(t);
@@ -235,7 +235,7 @@ Load< Scene > scene(LoadTagDefault, [](){
 		}
 	}
 	if (!spot) throw std::runtime_error("No 'Spot' spotlight in scene.");
-
+	*/
 
 	// Adjust for veges
 	texture_program_info.vao = *vegetable_meshes_for_texture_program;
@@ -274,13 +274,22 @@ Load< Scene > scene(LoadTagDefault, [](){
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
 	}
-	camera_parent_transform->position = glm::vec3(0,0,2);
+
+	camera_parent_transform = ret->new_transform();
+	camera = ret->new_camera(camera_parent_transform);
+	camera->is_perspective = false;
+	camera->ortho_scale = 50.f;
+
+	camera_parent_transform->position = glm::vec3(0,0,50);
+	camera_parent_transform->rotation = glm::angleAxis(glm::radians(0.f), glm::vec3(1.0f, 0.0f, 0.0f));
 	return ret;
 });
 
 GameMode::GameMode() {
 	players[0].portal_transform = p0_trans;
 	players[1].portal_transform = p1_trans;
+
+	//SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 GameMode::~GameMode() {
@@ -323,7 +332,7 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 		return false;
 	}
 
-	printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
+	//printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
 	Portal &portal = players[event.device];
 	float &rot_speed = rot_speeds[event.device];
 	float sensitivity = sensitivities[event.device];
@@ -340,10 +349,10 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 			rot_speed = 0;
 			return true;
 		} else if (event.item == 0) {
-			rot_speed = 1;
+			rot_speed = 3;
 			return true;
 		} else if (event.item == 1) {
-			rot_speed = 0;
+			rot_speed = -3;
 			return true;
 		}
 	}
@@ -351,10 +360,12 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
-	camera_parent_transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.0f, 0.0f, 0.0f));
-	spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
+	//spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
     
 	//compute simple movement of the Cube
+
+	players[0].rotate(elapsed * rot_speeds[0]);
+	players[1].rotate(elapsed * rot_speeds[1]);
 	
 	/*
 	float g = -9.81;
@@ -450,7 +461,8 @@ struct Framebuffers {
 
 void GameMode::draw(glm::uvec2 const &drawable_size) {
 	fbs.allocate(drawable_size, glm::uvec2(512, 512));
-
+	camera->aspect = drawable_size.x / float(drawable_size.y);
+/*
 	//Draw scene to shadow map for spotlight:
 	glBindFramebuffer(GL_FRAMEBUFFER, fbs.shadow_fb);
 	glViewport(0,0,fbs.shadow_size.x, fbs.shadow_size.y);
@@ -471,14 +483,13 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	GL_ERRORS();
+*/
 
-
-
+/*
 	//Draw scene to off-screen framebuffer:
 	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
 	glViewport(0,0,drawable_size.x, drawable_size.y);
 
-	camera->aspect = drawable_size.x / float(drawable_size.y);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -505,7 +516,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 			0.5f, 0.0f, 0.0f, 0.0f,
 			0.0f, 0.5f, 0.0f, 0.0f,
 			0.0f, 0.0f, 0.5f, 0.0f,
-			0.5f, 0.5f, 0.5f+0.00001f /* <-- bias */, 1.0f
+			0.5f, 0.5f, 0.5f+0.00001f, 1.0f
 		)
 		//this is the world-to-clip matrix used when rendering the shadow map:
 		* spot->make_projection() * spot->transform->make_world_to_local();
@@ -535,6 +546,38 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	GL_ERRORS();*/
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
+	glViewport(0,0,drawable_size.x, drawable_size.y);
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendEquation(GL_FUNC_ADD);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearColor(0.f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Draw once for ambient light
+	glUseProgram(texture_program->program);
+
+	//don't use distant directional light at all (color == 0):
+	glUniform3fv(texture_program->sun_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
+	glUniform3fv(texture_program->sun_direction_vec3, 1, glm::value_ptr(glm::normalize(glm::vec3(0.0f, 0.0f,-1.0f))));
+	//little bit of ambient light:
+	glUniform3fv(texture_program->sky_color_vec3, 1, glm::value_ptr(glm::vec3(1.f,1.f,1.f)));
+	glUniform3fv(texture_program->sky_direction_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
+	
+	glUniform3fv(texture_program->spot_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+	scene->draw(camera);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

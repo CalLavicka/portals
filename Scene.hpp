@@ -152,6 +152,8 @@ struct Scene {
 		float near = 0.01f; //near plane
 		//computed from the above:
 		glm::mat4 make_projection() const;
+		bool is_perspective = true;
+		float ortho_scale = 10.f;
 
 		//used by Scene to manage allocation:
 		Camera **alloc_prev_next = nullptr;

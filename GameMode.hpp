@@ -38,5 +38,5 @@ struct GameMode : public Mode {
 
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
-	float sensitivities[2] = {10.f,10.f};
+	float sensitivities[2] = {50.f,50.f};
 };

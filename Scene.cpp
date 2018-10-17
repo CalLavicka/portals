@@ -110,7 +110,11 @@ glm::mat4 Scene::Lamp::make_projection() const {
 //---------------------------
 
 glm::mat4 Scene::Camera::make_projection() const {
-	return glm::infinitePerspective( fovy, aspect, near );
+	if (is_perspective) {
+		return glm::infinitePerspective( fovy, aspect, near );
+	} else {
+		return glm::ortho(-ortho_scale * aspect,ortho_scale * aspect,-ortho_scale,ortho_scale, near, 1000.f);
+	}
 }
 
 //---------------------------
@@ -181,6 +185,7 @@ void Scene::draw(Scene::Camera const *camera, Object::ProgramType program_type) 
 	assert(program_type < Object::ProgramTypes);
 
 	glm::mat4 world_to_camera = camera->transform->make_world_to_local();
+
 	glm::mat4 world_to_clip = camera->make_projection() * world_to_camera;
 
 	draw(world_to_clip, program_type);
