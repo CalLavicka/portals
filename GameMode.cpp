@@ -16,6 +16,7 @@
 #include "depth_program.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
 #include <iostream>
 #include <fstream>
@@ -159,7 +160,15 @@ Scene::Transform *cube_transform = nullptr;
 Scene::Transform *p0_trans = nullptr;
 Scene::Transform *p1_trans = nullptr;
 
-Load< Scene > scene(LoadTagDefault, [](){
+void GameMode::load_scene() {
+	{
+		// Initialize random gen
+		std::random_device r;
+		std::seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
+		std::mt19937 rnd{seed};
+		random_gen = rnd;
+	}
+
 	Scene *ret = new Scene;
 	
 	//pre-build some program info (material) blocks to assign to each object:
@@ -212,6 +221,10 @@ Load< Scene > scene(LoadTagDefault, [](){
 		if (t->name == "Cube") {
 			if (cube_transform) throw std::runtime_error("Multiple 'Cube' transforms in scene.");
 			cube_transform = t;
+
+			// hard code the bbx of cube for now
+			cube_transform->boundingbox = new BoundingBox(2.0f, 2.0f);
+			cube_transform->boundingbox->update_origin(cube_transform->position, glm::vec2(0.0f, 1.0f));
 		}
 	}
 	if (!camera_parent_transform) throw std::runtime_error("No 'CameraParent' transform in scene.");
@@ -282,10 +295,72 @@ Load< Scene > scene(LoadTagDefault, [](){
 
 	camera_parent_transform->position = glm::vec3(0,0,50);
 	camera_parent_transform->rotation = glm::angleAxis(glm::radians(0.f), glm::vec3(1.0f, 0.0f, 0.0f));
-	return ret;
-});
+
+
+	{ // Add the three pots
+		for(int i=0; i<3; i++) {
+			Scene::Object *obj = ret->new_object(ret->new_transform());
+			obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+			obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
+
+			obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
+
+			MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Pot");
+			obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
+			obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+			obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
+			obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+			obj->transform->position = glm::vec3(30.f * i - 30.f,-40.f,0.f);
+			obj->transform->scale = glm::vec3(0.3f,0.3f,0.3f);
+			obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
+			obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
+			obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
+			pots.push_back(obj);
+		}
+	}
+
+	scene = ret;
+}
+
+std::string food_names[] = {"Broccoli", "Potato", "Carrot", "Mushroom"};
+
+void GameMode::spawn_food() {
+
+	Scene::Object::ProgramInfo texture_program_info;
+	texture_program_info.program = texture_program->program;
+	texture_program_info.vao = *vegetable_meshes_for_texture_program;
+	texture_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
+	texture_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
+	texture_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
+
+	Scene::Object::ProgramInfo depth_program_info;
+	depth_program_info.program = depth_program->program;
+	depth_program_info.vao = *vegetable_meshes_for_depth_program;
+	depth_program_info.mvp_mat4  = depth_program->object_to_clip_mat4;
+
+	Scene::Object *obj = scene->new_object(scene->new_transform());
+	obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+	obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
+
+	obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
+
+	MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup(food_names[random_gen() % 4]);
+	obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
+	obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+	obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
+	obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+	obj->transform->position = glm::vec3(random_gen() % 100 - 50.f,50.f,0.f);
+	obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
+	obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
+	obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
+	foods.push_back(obj);
+}
 
 GameMode::GameMode() {
+	load_scene();
+
 	players[0].portal_transform = p0_trans;
 	players[1].portal_transform = p1_trans;
 
@@ -372,17 +447,51 @@ void GameMode::update(float elapsed) {
 
 	players[0].rotate(elapsed * rot_speeds[0]);
 	players[1].rotate(elapsed * rot_speeds[1]);
+
+	for(auto iter = foods.begin(); iter != foods.end();) {
+		Scene::Transform *food_transform = (*iter)->transform;
+
+		float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
+						std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
+		// enable only portal 1
+		if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
+			if (players[1].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
+				teleport(food_transform, 0);  // GameMode::teleport(object, destination_portal)
+			}
+		}
+
+		// update vegetbale speed, position, and boundingbox
+		float g = -9.81f;
+		food_transform->speed.y += g * elapsed;
+		food_transform->position.x += food_transform->speed.x * elapsed;
+		food_transform->position.y += food_transform->speed.y * elapsed;
+		food_transform->boundingbox->update_origin(food_transform->position);
+
+		for(Scene::Object * pot : pots) {
+			// TODO: Check for collision with pot
+			(void)pot;
+		}
+
+		if (food_transform->position.y < -60.f) {
+			// OFF THE TABLE
+			printf("Food fell off...\n");
+			scene->delete_transform(food_transform);
+			scene->delete_object(*iter);
+			auto temp = iter;
+			++iter;
+			foods.erase(temp);
+			continue;
+		}
+
+		++iter;
+	}
+
+	fruit_timer -= elapsed;
+	if(fruit_timer < 0.f) {
+		fruit_timer += 5.f;
+		spawn_food();
+	}
 	
-	/*
-	float g = -9.81;
-	if (cube_transform->position.z > 0.0f) {
-		cube_transform->speed.y += g * elapsed;
-		cube_transform->position.x += cube_transform->speed.x * elapsed;
-		cube_transform->position.z += cube_transform->speed.y * elapsed;
-	} else {
-		cube_transform->speed = glm::vec2(2.0f, 15.0f);
-		cube_transform->position = glm::vec3(-4.0f, -7.0f, 0.5f);
-	}*/
 }
 
 //GameMode will render to some offscreen framebuffer(s).
@@ -601,4 +710,44 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glUseProgram(0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+
+
+void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_portal_id) {
+	const Portal &to_portal   = players[ to_portal_id];
+	const Portal &from_portal = players[!to_portal_id];
+
+    object_transform->position = glm::vec3(to_portal.position, 0.0f);  // dummy implementation
+
+	// find angle between from_portal_normal and to_portal_normal
+	const glm::vec2 &from_normal = from_portal.normal;
+	const glm::vec2 &to_normal = to_portal.normal;
+
+	// invert speed
+	object_transform->speed *= -1.0f;
+
+    auto angle_between = [=] (glm::vec2 from, glm::vec2 to) -> float {
+		from = glm::normalize(from);
+		to = glm::normalize(to);
+		float sign = (from.x*to.y - from.y*to.x > 0.0f) ? 1.0f : -1.0f;
+		return sign * std::acos(glm::dot(from, to));
+	};
+
+	float phi = angle_between(from_normal, to_normal);
+	float theta = angle_between(from_normal, object_transform->speed);
+
+	// rotate phi - 2*theta
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
+    object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+
+/*
+
+	float sign = (from_normal.x*to_normal.y - from_normal.y*to_normal.x > 0.0f) ? 1.0f : -1.0f;
+	float phi = sign * std::acos(glm::dot(from_normal, to_normal));
+
+	// TODO: rotate object_transform->speed by phi + pi
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi + float(M_PI), glm::vec3(0.0f, 0.0f, 1.0f));
+    object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+*/
 }
