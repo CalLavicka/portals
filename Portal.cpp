@@ -45,7 +45,7 @@ bool Portal::is_in_portal(const Scene::Transform *object_transform) {
     
     for (auto &corner : bbx_corners) {
         // check every corner is in range
-        float projected_length = std::abs(glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel));
+        float projected_length = glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel);
         if (projected_length < 0.0f || projected_length > this->boundingbox->width) return false;
     }
 
