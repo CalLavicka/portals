@@ -477,6 +477,10 @@ void GameMode::update(float elapsed) {
 			if(food_transform->position.y < -38.f && food_transform->position.x > pot->transform->position.x - 10.f &&
 					food_transform->position.x < pot->transform->position.x + 10.f) {
 				scores[level]+=10;
+				fruit_hit++;
+				if(fruit_hit == 20) {
+					show_win();
+				}
 		
 				scene->delete_transform(food_transform);
 				scene->delete_object(*iter);

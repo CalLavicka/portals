@@ -45,9 +45,10 @@ struct GameMode : public Mode {
 
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
-	float sensitivities[2] = {50.f,50.f};
+	float sensitivities[2] = {70.f,70.f};
     std::vector <uint32_t> scores = {50};
     uint32_t level = 0;
+	uint32_t fruit_hit = 0;
 
 	std::list<Scene::Object *> foods;
 
