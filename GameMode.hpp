@@ -46,12 +46,18 @@ struct GameMode : public Mode {
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
 	float sensitivities[2] = {50.f,50.f};
+    std::vector <uint32_t> scores = {50};
+    uint32_t level = 0;
 
 	std::list<Scene::Object *> foods;
-	
+
 	std::vector<Scene::Object *> pots;
 
 	void teleport(Scene::Transform *object_transform, const uint32_t to_portal);
 
-	Scene *scene;
+    void show_pause_menu();
+    void show_lose();
+    void show_win();
+
+    Scene *scene;
 };

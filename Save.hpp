@@ -9,6 +9,7 @@ struct SaveData {
     std::vector <uint32_t> personalBests;
 };
 
-void save(uint32_t level, std::vector <uint32_t> const &scores);
+void save(uint32_t saveNum,
+        uint32_t level, std::vector <uint32_t> const &scores);
 
 SaveData LoadSave(uint32_t saveNumber);

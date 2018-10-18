@@ -8,10 +8,10 @@
 #include <string>
 
 using namespace std;
-void save(uint32_t level, vector <uint32_t> const &scores){
-    cout<<"Saving to save "<<level<<endl;
+void save(uint32_t saveNum, uint32_t level, vector <uint32_t> const &scores){
+    cout<<"Saving to save "<<saveNum<<endl;
     ofstream saveFile;
-    saveFile.open("saves/save"+to_string(level)+".txt");
+    saveFile.open("saves/save"+to_string(saveNum)+".txt", std::ofstream::trunc);
     saveFile<<to_string(level)<<"\n";
     for(uint32_t i = 0; i<scores.size(); i++){
         saveFile<<to_string(scores[i])<<"\n";
