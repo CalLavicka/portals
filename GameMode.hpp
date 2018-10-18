@@ -53,6 +53,7 @@ struct GameMode : public Mode {
 
 	std::vector<Scene::Object *> pots;
 
+    // teleport the object to the assigned portal
 	void teleport(Scene::Transform *object_transform, const uint32_t to_portal);
 
     void show_pause_menu();

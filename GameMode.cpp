@@ -409,7 +409,7 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 		return false;
 	}
 
-	//printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
+	// printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
 	Portal &portal = players[event.device];
 	float &rot_speed = rot_speeds[event.device];
 	float sensitivity = sensitivities[event.device];
@@ -446,22 +446,29 @@ void GameMode::update(float elapsed) {
 
 	for(auto iter = foods.begin(); iter != foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;
+    
+		{  // teleport
+			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
+							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
+			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
+				players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
 
-		float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
-						std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
-		// enable only portal 1
-		if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
-			if (players[1].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
-				teleport(food_transform, 0);  // GameMode::teleport(object, destination_portal)
+				teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
+			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
+				players[1].should_teleport(food_transform)) {
+
+				teleport(food_transform, 0);
 			}
 		}
 
-		// update vegetbale speed, position, and boundingbox
-		float g = -9.81f;
-		food_transform->speed.y += g * elapsed;
-		food_transform->position.x += food_transform->speed.x * elapsed;
-		food_transform->position.y += food_transform->speed.y * elapsed;
-		food_transform->boundingbox->update_origin(food_transform->position);
+		{  // update vegetbale speed, position, and boundingbox
+			float g = -9.81f;
+			food_transform->speed.y += g * elapsed;
+			food_transform->speed.y = std::max(-15.0f, food_transform->speed.y);  // speed limit on cube
+			food_transform->position.x += food_transform->speed.x * elapsed;
+			food_transform->position.y += food_transform->speed.y * elapsed;
+			food_transform->boundingbox->update_origin(food_transform->position);
+		}
 
 		for(Scene::Object * pot : pots) {
 			// TODO: Check for collision with pot
@@ -492,7 +499,6 @@ void GameMode::update(float elapsed) {
 		fruit_timer += 5.f;
 		spawn_food();
 	}
-
 }
 
 //GameMode will render to some offscreen framebuffer(s).
@@ -720,44 +726,36 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-
-
 void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_portal_id) {
-	const Portal &to_portal   = players[ to_portal_id];
 	const Portal &from_portal = players[!to_portal_id];
+	const Portal &  to_portal = players[ to_portal_id];
 
-    object_transform->position = glm::vec3(to_portal.position, 0.0f);  // dummy implementation
+    // move to new potision: dummy implementation
+	object_transform->position = glm::vec3(to_portal.position, 0.0f);
 
-	// find angle between from_portal_normal and to_portal_normal
-	const glm::vec2 &from_normal = from_portal.normal;
-	const glm::vec2 &to_normal = to_portal.normal;
+    {  // compute new speed
+		// find angle between from_portal_normal and to_portal_normal (phi)
+		//                    from_portal_normal and    -object_speed (theta)
+		const glm::vec2 &from_normal = from_portal.normal;
+		const glm::vec2 &  to_normal =   to_portal.normal;
+		object_transform->speed *= -1.0f;  // reverse speed
 
-	// invert speed
-	object_transform->speed *= -1.0f;
+		auto angle_between = [=] (glm::vec2 from, glm::vec2 to) -> float {
+			from = glm::normalize(from);
+			to = glm::normalize(to);
+			float sign = (from.x*to.y - from.y*to.x > 0.0f) ? 1.0f : -1.0f;
+			return sign * std::acos(glm::dot(from, to));
+		};
+		float phi = angle_between(from_normal, to_normal);
+		float theta = angle_between(from_normal, object_transform->speed);
 
-    auto angle_between = [=] (glm::vec2 from, glm::vec2 to) -> float {
-		from = glm::normalize(from);
-		to = glm::normalize(to);
-		float sign = (from.x*to.y - from.y*to.x > 0.0f) ? 1.0f : -1.0f;
-		return sign * std::acos(glm::dot(from, to));
-	};
+		// rotate speed by phi - 2*theta
+		glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
+		object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+	}
 
-	float phi = angle_between(from_normal, to_normal);
-	float theta = angle_between(from_normal, object_transform->speed);
-
-	// rotate phi - 2*theta
-    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
-    object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
-
-/*
-
-	float sign = (from_normal.x*to_normal.y - from_normal.y*to_normal.x > 0.0f) ? 1.0f : -1.0f;
-	float phi = sign * std::acos(glm::dot(from_normal, to_normal));
-
-	// TODO: rotate object_transform->speed by phi + pi
-    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi + float(M_PI), glm::vec3(0.0f, 0.0f, 1.0f));
-    object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
-*/
+    // update bbx
+	object_transform->boundingbox->update_origin(object_transform->position);
 }
 
 void GameMode::show_pause_menu() {
@@ -818,7 +816,7 @@ void GameMode::show_lose() {
             Mode::set_current(nullptr);
             });
 
-    menu->selected = 1;
+    menu->selected = 2;
 
     Mode::set_current(menu);
 }
