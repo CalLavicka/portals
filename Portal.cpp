@@ -29,7 +29,8 @@ void Portal::rotate(float const &to_rot) {
     vec2 newnormal = vec2(normal.x * cc - normal.y * ss, normal.x * ss + normal.y * cc);
     normal = newnormal;
 
-    this->portal_transform->rotation = angleAxis(atan2f(normal.y, normal.x), vec3(0,0,1));
+    //this->portal_transform->rotation = angleAxis(atan2f(normal.y, normal.x), vec3(0,0,1));
+    this->portal_transform->rotation = angleAxis(atan2f(-normal.x, normal.y), vec3(0,0,1)) * angleAxis(0.3f, vec3(1,0,0));
 }
 
 void Portal::update_boundingbox() {
