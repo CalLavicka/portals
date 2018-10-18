@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GL.hpp"
+#include "BoundingBox.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -31,12 +32,7 @@ struct Scene {
 	
 	    //physical properties
 		glm::vec2 speed = glm::vec2(2.0f, 10.0f);
-		std::vector< glm::vec2 > bounding_box = std::vector< glm::vec2 > {  // just put some dummy data in
-			glm::vec2(0.0f, 0.0f),
-			glm::vec2(0.0f, 0.0f),
-			glm::vec2(0.0f, 0.0f),
-			glm::vec2(0.0f, 0.0f)
-		};
+		BoundingBox *boundingbox = nullptr;
 
 		//Add transform to the child list of 'parent', before child 'before' (or at end, if 'before' is not given):
 		void set_parent(Transform *parent, Transform *before = nullptr);
@@ -59,6 +55,11 @@ struct Scene {
 			}
 			if (parent) {
 				set_parent(nullptr);
+			}
+
+            // delete allocated boundingbox
+			if (boundingbox) {
+				delete boundingbox;
 			}
 		}
 
