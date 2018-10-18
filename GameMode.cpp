@@ -388,18 +388,18 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 	}
 
-    if(evt.type == SDL_KEYDOWN){
-        //TODO add specification for which save state
-        if(evt.key.keysym.scancode == SDL_SCANCODE_SPACE){
-            show_pause_menu();
-        }else if(evt.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
+	if(evt.type == SDL_KEYDOWN){
+		//TODO add specification for which save state
+		if(evt.key.keysym.scancode == SDL_SCANCODE_SPACE){
+			show_pause_menu();
+		}else if(evt.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
 
 			SDL_SetRelativeMouseMode(SDL_FALSE);
-        } else if (evt.key.keysym.scancode == SDL_SCANCODE_P) {
+		} else if (evt.key.keysym.scancode == SDL_SCANCODE_P) {
 
 			SDL_SetRelativeMouseMode(SDL_TRUE);
 		}
-    }
+	}
 
 	return false;
 }
@@ -446,7 +446,7 @@ void GameMode::update(float elapsed) {
 
 	for(auto iter = foods.begin(); iter != foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;
-    
+	
 		{  // teleport
 			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
 							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
@@ -470,19 +470,31 @@ void GameMode::update(float elapsed) {
 			food_transform->boundingbox->update_origin(food_transform->position);
 		}
 
+
+		bool collided = false;
 		for(Scene::Object * pot : pots) {
-			// TODO: Check for collision with pot
-            // if(collide)
-            //     scores[level]+=10;
-			(void)pot;
+			// TODO: Check for collision with pot with bounding boxes
+			if(food_transform->position.y < -38.f && food_transform->position.x > pot->transform->position.x - 10.f &&
+					food_transform->position.x < pot->transform->position.x + 10.f) {
+				scores[level]+=10;
+		
+				scene->delete_transform(food_transform);
+				scene->delete_object(*iter);
+				auto temp = iter;
+				++iter;
+				foods.erase(temp);
+				collided = true;
+				break;
+			}
 		}
+		if(collided) continue;
 
 		if (food_transform->position.y < -60.f) {
 			// OFF THE TABLE
 			printf("Food fell off...\n");
-            scores[level]-=10;
-            if(scores[level]==0)
-                show_lose();
+			scores[level]-=10;
+			if(scores[level]==0)
+				show_lose();
 			scene->delete_transform(food_transform);
 			scene->delete_object(*iter);
 			auto temp = iter;
@@ -701,12 +713,12 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 
 	scene->draw(camera);
 
-    //draw score
-    std::string message = "SCORE "+std::to_string(scores[level]);
-    float height = 0.1f;
-    float width = text_width(message, height);
-    draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
-            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	//draw score
+	std::string message = "SCORE "+std::to_string(scores[level]);
+	float height = 0.1f;
+	float width = text_width(message, height);
+	draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
+			glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -730,10 +742,10 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 	const Portal &from_portal = players[!to_portal_id];
 	const Portal &  to_portal = players[ to_portal_id];
 
-    // move to new potision: dummy implementation
+	// move to new potision: dummy implementation
 	object_transform->position = glm::vec3(to_portal.position, 0.0f);
 
-    {  // compute new speed
+	{  // compute new speed
 		// find angle between from_portal_normal and to_portal_normal (phi)
 		//                    from_portal_normal and    -object_speed (theta)
 		const glm::vec2 &from_normal = from_portal.normal;
@@ -754,88 +766,88 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 		object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
 	}
 
-    // update bbx
+	// update bbx
 	object_transform->boundingbox->update_origin(object_transform->position);
 }
 
 void GameMode::show_pause_menu() {
-    std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
-    std::shared_ptr< Mode > game = shared_from_this();
-    //menu->background = game;
+	std::shared_ptr< Mode > game = shared_from_this();
+	//menu->background = game;
 
-    menu->choices.emplace_back("PAUSED");
-    menu->choices.emplace_back("SAVE STATE 1", [game, this](){
-            save(1,level, scores);
-            Mode::set_current(game);
-            });
-    menu->choices.emplace_back("SAVE STATE 2", [game, this](){
-            save(2,level, scores);
-            Mode::set_current(game);
-            });
-    menu->choices.emplace_back("SAVE STATE 3", [game, this](){
-            save(3,level, scores);
-            Mode::set_current(game);
-            });
-    menu->choices.emplace_back("LOAD STATE 1", [game, this](){
-            SaveData res = LoadSave(1);
-            level = res.currentLevel;
-            scores = res.personalBests;
-            Mode::set_current(game);
-            });
-    menu->choices.emplace_back("LOAD STATE 2", [game, this](){
-            SaveData res = LoadSave(2);
-            level = res.currentLevel;
-            scores = res.personalBests;
-            Mode::set_current(game);
-            });
-    menu->choices.emplace_back("LOAD STATE 3", [game, this](){
-            SaveData res = LoadSave(3);
-            level = res.currentLevel;
-            scores = res.personalBests;
-            Mode::set_current(game);
-            });
-    menu->choices.emplace_back("QUIT", [](){
-            Mode::set_current(nullptr);
-            });
+	menu->choices.emplace_back("PAUSED");
+	menu->choices.emplace_back("SAVE STATE 1", [game, this](){
+			save(1,level, scores);
+			Mode::set_current(game);
+			});
+	menu->choices.emplace_back("SAVE STATE 2", [game, this](){
+			save(2,level, scores);
+			Mode::set_current(game);
+			});
+	menu->choices.emplace_back("SAVE STATE 3", [game, this](){
+			save(3,level, scores);
+			Mode::set_current(game);
+			});
+	menu->choices.emplace_back("LOAD STATE 1", [game, this](){
+			SaveData res = LoadSave(1);
+			level = res.currentLevel;
+			scores = res.personalBests;
+			Mode::set_current(game);
+			});
+	menu->choices.emplace_back("LOAD STATE 2", [game, this](){
+			SaveData res = LoadSave(2);
+			level = res.currentLevel;
+			scores = res.personalBests;
+			Mode::set_current(game);
+			});
+	menu->choices.emplace_back("LOAD STATE 3", [game, this](){
+			SaveData res = LoadSave(3);
+			level = res.currentLevel;
+			scores = res.personalBests;
+			Mode::set_current(game);
+			});
+	menu->choices.emplace_back("QUIT", [](){
+			Mode::set_current(nullptr);
+			});
 
-    menu->selected = 1;
+	menu->selected = 1;
 
-    Mode::set_current(menu);
+	Mode::set_current(menu);
 }
 
 void GameMode::show_lose() {
-    std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
-    std::shared_ptr< Mode > game = shared_from_this();
-    menu->background = game;
+	std::shared_ptr< Mode > game = shared_from_this();
+	menu->background = game;
 
-    menu->choices.emplace_back("GAME OVER");
-    menu->choices.emplace_back("RESTAURANT BANKRUPT");
-    menu->choices.emplace_back("QUIT", [](){
-            Mode::set_current(nullptr);
-            });
+	menu->choices.emplace_back("GAME OVER");
+	menu->choices.emplace_back("RESTAURANT BANKRUPT");
+	menu->choices.emplace_back("QUIT", [](){
+			Mode::set_current(nullptr);
+			});
 
-    menu->selected = 2;
+	menu->selected = 2;
 
-    Mode::set_current(menu);
+	Mode::set_current(menu);
 }
 
 void GameMode::show_win() {
-    level++;
-    scores.emplace_back(50);
+	level++;
+	scores.emplace_back(50);
 
-    std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
-    std::shared_ptr< Mode > game = shared_from_this();
-    menu->background = game;
+	std::shared_ptr< Mode > game = shared_from_this();
+	menu->background = game;
 
-    menu->choices.emplace_back("LEVEL PASSED");
-    menu->choices.emplace_back("CONTINUE", [game](){
-                Mode::set_current(game);
-            });
+	menu->choices.emplace_back("LEVEL PASSED");
+	menu->choices.emplace_back("CONTINUE", [game](){
+				Mode::set_current(game);
+			});
 
-    menu->selected = 1;
+	menu->selected = 1;
 
-    Mode::set_current(menu);
+	Mode::set_current(menu);
 }
