@@ -40,5 +40,6 @@ struct GameMode : public Mode {
 	float rot_speeds[2] = {0,0};
 	float sensitivities[2] = {10.f,10.f};
 
+    // teleport the object to the assigned portal
 	void teleport(Scene::Transform *object_transform, const uint32_t to_portal);
 };
