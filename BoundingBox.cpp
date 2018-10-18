@@ -12,15 +12,14 @@ std::vector< glm::vec2 > BoundingBox::get_corners() const {
 }
 
 void BoundingBox::update_origin(const glm::vec2 &position_, bool normal_changed) {
-    //float dw = this->width / 2.0f;
-    //float dt = this->thickness / 2.0f;
+    float dw = this->width / 2.0f;
+    float dt = this->thickness / 2.0f;
     if (normal_changed) {  // updata parallel only when normal is changed
         glm::mat4 rotation = glm::rotate(glm::mat4(1.f), -90.0f * float(M_PI) / 180.0f, glm::vec3(0.0f, 0.0f, 1.0f));
         this->parallel = glm::vec2(rotation * glm::vec4(this->normal, 0.0f, 1.0f));
     }
 
-    // TEMPORARY: No idea why this is better
-    this->p0 = position_;// - this->normal * dt - this->parallel * dw;
+    this->p0 = position_ - this->normal * dt - this->parallel * dw;
 }
 
 void BoundingBox::update_origin(const glm::vec2 &position_, const glm::vec2 &normal_) {
