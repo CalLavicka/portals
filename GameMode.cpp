@@ -321,7 +321,13 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             save(level, scores);
 
             SaveData loaded = LoadSave(level);
-        }
+        } else if(evt.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
+            
+			SDL_SetRelativeMouseMode(SDL_FALSE);
+        } else if (evt.key.keysym.scancode == SDL_SCANCODE_P) {
+
+			SDL_SetRelativeMouseMode(SDL_TRUE);
+		}
     }
 
 	return false;
