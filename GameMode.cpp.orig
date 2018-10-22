@@ -388,18 +388,18 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 	}
 
-	if(evt.type == SDL_KEYDOWN){
-		//TODO add specification for which save state
-		if(evt.key.keysym.scancode == SDL_SCANCODE_SPACE){
-			show_pause_menu();
-		}else if(evt.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
+    if(evt.type == SDL_KEYDOWN){
+        //TODO add specification for which save state
+        if(evt.key.keysym.scancode == SDL_SCANCODE_SPACE){
+            show_pause_menu();
+        }else if(evt.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
 
 			SDL_SetRelativeMouseMode(SDL_FALSE);
-		} else if (evt.key.keysym.scancode == SDL_SCANCODE_P) {
+        } else if (evt.key.keysym.scancode == SDL_SCANCODE_P) {
 
 			SDL_SetRelativeMouseMode(SDL_TRUE);
 		}
-	}
+    }
 
 	return false;
 }
@@ -409,7 +409,11 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 		return false;
 	}
 
+<<<<<<< HEAD
+	//printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
+=======
 	// printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
+>>>>>>> e282c30e52cd9640fedb63db220377194f4e7b89
 	Portal &portal = players[event.device];
 	float &rot_speed = rot_speeds[event.device];
 	float sensitivity = sensitivities[event.device];
@@ -437,6 +441,7 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
+<<<<<<< HEAD
 	//spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
 
 	//compute simple movement of the Cube
@@ -446,59 +451,52 @@ void GameMode::update(float elapsed) {
 
 	for(auto iter = foods.begin(); iter != foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;
-	
-		{  // teleport
-			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
-							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
-			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
-				players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
 
-				teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
-			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
-				players[1].should_teleport(food_transform)) {
-
-				teleport(food_transform, 0);
+		float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
+						std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
+		// enable only portal 1
+		if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
+			if (players[1].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
+				teleport(food_transform, 0);  // GameMode::teleport(object, destination_portal)
 			}
 		}
 
-		{  // update vegetbale speed, position, and boundingbox
-			float g = -9.81f;
-			food_transform->speed.y += g * elapsed;
-			food_transform->speed.y = std::max(-15.0f, food_transform->speed.y);  // speed limit on cube
-			food_transform->position.x += food_transform->speed.x * elapsed;
-			food_transform->position.y += food_transform->speed.y * elapsed;
-			food_transform->boundingbox->update_origin(food_transform->position);
-		}
+		// update vegetbale speed, position, and boundingbox
+		float g = -9.81f;
+		food_transform->speed.y += g * elapsed;
+		food_transform->position.x += food_transform->speed.x * elapsed;
+		food_transform->position.y += food_transform->speed.y * elapsed;
+		food_transform->boundingbox->update_origin(food_transform->position);
 
-
-		bool collided = false;
 		for(Scene::Object * pot : pots) {
-			// TODO: Check for collision with pot with bounding boxes
-			if(food_transform->position.y < -38.f && food_transform->position.x > pot->transform->position.x - 10.f &&
-					food_transform->position.x < pot->transform->position.x + 10.f) {
-				scores[level]+=10;
-				fruit_hit++;
-				if(fruit_hit == 20) {
-					show_win();
-				}
-		
-				scene->delete_transform(food_transform);
-				scene->delete_object(*iter);
-				auto temp = iter;
-				++iter;
-				foods.erase(temp);
-				collided = true;
-				break;
-			}
+			// TODO: Check for collision with pot
+            // if(collide)
+            //     scores[level]+=10;
+			(void)pot;
+=======
+	camera_parent_transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.0f, 0.0f, 0.0f));
+	spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
+    
+	{  // teleport
+		float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
+						  std::max(cube_transform->boundingbox->width, cube_transform->boundingbox->thickness);
+		if (glm::distance(players[0].portal_transform->position, cube_transform->position) < threshold &&
+			players[0].should_teleport(cube_transform)) {  // Portal::should_teleport(object_transform)
+
+			teleport(cube_transform, 1);  // GameMode::teleport(object, destination_portal)
+		} else if (glm::distance(players[1].portal_transform->position, cube_transform->position) < threshold &&
+			players[1].should_teleport(cube_transform)) {
+
+			teleport(cube_transform, 0);
+>>>>>>> e282c30e52cd9640fedb63db220377194f4e7b89
 		}
-		if(collided) continue;
 
 		if (food_transform->position.y < -60.f) {
 			// OFF THE TABLE
 			printf("Food fell off...\n");
-			scores[level]-=10;
-			if(scores[level]==0)
-				show_lose();
+            scores[level]-=10;
+            if(scores[level]==0)
+                show_lose();
 			scene->delete_transform(food_transform);
 			scene->delete_object(*iter);
 			auto temp = iter;
@@ -515,6 +513,18 @@ void GameMode::update(float elapsed) {
 		fruit_timer += 5.f;
 		spawn_food();
 	}
+
+<<<<<<< HEAD
+=======
+	{  // update cube speed, position, and boundingbox
+		float g = -9.81f;
+		cube_transform->speed.y += g * elapsed;
+		cube_transform->speed.y = std::max(-15.0f, cube_transform->speed.y);  // speed limit on cube
+		cube_transform->position.x += cube_transform->speed.x * elapsed;
+		cube_transform->position.y += cube_transform->speed.y * elapsed;
+		cube_transform->boundingbox->update_origin(cube_transform->position);
+	}
+>>>>>>> e282c30e52cd9640fedb63db220377194f4e7b89
 }
 
 //GameMode will render to some offscreen framebuffer(s).
@@ -717,12 +727,12 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 
 	scene->draw(camera);
 
-	//draw score
-	std::string message = "SCORE "+std::to_string(scores[level]);
-	float height = 0.1f;
-	float width = text_width(message, height);
-	draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
-			glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    //draw score
+    std::string message = "SCORE "+std::to_string(scores[level]);
+    float height = 0.1f;
+    float width = text_width(message, height);
+    draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -746,10 +756,10 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 	const Portal &from_portal = players[!to_portal_id];
 	const Portal &  to_portal = players[ to_portal_id];
 
-	// move to new potision: dummy implementation
+    // move to new potision: dummy implementation
 	object_transform->position = glm::vec3(to_portal.position, 0.0f);
 
-	{  // compute new speed
+    {  // compute new speed
 		// find angle between from_portal_normal and to_portal_normal (phi)
 		//                    from_portal_normal and    -object_speed (theta)
 		const glm::vec2 &from_normal = from_portal.normal;
@@ -770,88 +780,124 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 		object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
 	}
 
-	// update bbx
-	object_transform->boundingbox->update_origin(object_transform->position);
+<<<<<<< HEAD
+    object_transform->position = glm::vec3(to_portal.position, 0.0f);  // dummy implementation
+
+	// find angle between from_portal_normal and to_portal_normal
+	const glm::vec2 &from_normal = from_portal.normal;
+	const glm::vec2 &to_normal = to_portal.normal;
+
+	// invert speed
+	object_transform->speed *= -1.0f;
+
+    auto angle_between = [=] (glm::vec2 from, glm::vec2 to) -> float {
+		from = glm::normalize(from);
+		to = glm::normalize(to);
+		float sign = (from.x*to.y - from.y*to.x > 0.0f) ? 1.0f : -1.0f;
+		return sign * std::acos(glm::dot(from, to));
+	};
+
+	float phi = angle_between(from_normal, to_normal);
+	float theta = angle_between(from_normal, object_transform->speed);
+
+	// rotate phi - 2*theta
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
+    object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+
+/*
+
+	float sign = (from_normal.x*to_normal.y - from_normal.y*to_normal.x > 0.0f) ? 1.0f : -1.0f;
+	float phi = sign * std::acos(glm::dot(from_normal, to_normal));
+
+	// TODO: rotate object_transform->speed by phi + pi
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi + float(M_PI), glm::vec3(0.0f, 0.0f, 1.0f));
+    object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+*/
 }
 
 void GameMode::show_pause_menu() {
-	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+    std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
-	std::shared_ptr< Mode > game = shared_from_this();
-	//menu->background = game;
+    std::shared_ptr< Mode > game = shared_from_this();
+    //menu->background = game;
 
-	menu->choices.emplace_back("PAUSED");
-	menu->choices.emplace_back("SAVE STATE 1", [game, this](){
-			save(1,level, scores);
-			Mode::set_current(game);
-			});
-	menu->choices.emplace_back("SAVE STATE 2", [game, this](){
-			save(2,level, scores);
-			Mode::set_current(game);
-			});
-	menu->choices.emplace_back("SAVE STATE 3", [game, this](){
-			save(3,level, scores);
-			Mode::set_current(game);
-			});
-	menu->choices.emplace_back("LOAD STATE 1", [game, this](){
-			SaveData res = LoadSave(1);
-			level = res.currentLevel;
-			scores = res.personalBests;
-			Mode::set_current(game);
-			});
-	menu->choices.emplace_back("LOAD STATE 2", [game, this](){
-			SaveData res = LoadSave(2);
-			level = res.currentLevel;
-			scores = res.personalBests;
-			Mode::set_current(game);
-			});
-	menu->choices.emplace_back("LOAD STATE 3", [game, this](){
-			SaveData res = LoadSave(3);
-			level = res.currentLevel;
-			scores = res.personalBests;
-			Mode::set_current(game);
-			});
-	menu->choices.emplace_back("QUIT", [](){
-			Mode::set_current(nullptr);
-			});
+    menu->choices.emplace_back("PAUSED");
+    menu->choices.emplace_back("SAVE STATE 1", [game, this](){
+            save(1,level, scores);
+            Mode::set_current(game);
+            });
+    menu->choices.emplace_back("SAVE STATE 2", [game, this](){
+            save(2,level, scores);
+            Mode::set_current(game);
+            });
+    menu->choices.emplace_back("SAVE STATE 3", [game, this](){
+            save(3,level, scores);
+            Mode::set_current(game);
+            });
+    menu->choices.emplace_back("LOAD STATE 1", [game, this](){
+            SaveData res = LoadSave(1);
+            level = res.currentLevel;
+            scores = res.personalBests;
+            Mode::set_current(game);
+            });
+    menu->choices.emplace_back("LOAD STATE 2", [game, this](){
+            SaveData res = LoadSave(2);
+            level = res.currentLevel;
+            scores = res.personalBests;
+            Mode::set_current(game);
+            });
+    menu->choices.emplace_back("LOAD STATE 3", [game, this](){
+            SaveData res = LoadSave(3);
+            level = res.currentLevel;
+            scores = res.personalBests;
+            Mode::set_current(game);
+            });
+    menu->choices.emplace_back("QUIT", [](){
+            Mode::set_current(nullptr);
+            });
 
-	menu->selected = 1;
+    menu->selected = 1;
 
-	Mode::set_current(menu);
+    Mode::set_current(menu);
 }
 
 void GameMode::show_lose() {
-	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+    std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
-	std::shared_ptr< Mode > game = shared_from_this();
-	menu->background = game;
+    std::shared_ptr< Mode > game = shared_from_this();
+    menu->background = game;
 
-	menu->choices.emplace_back("GAME OVER");
-	menu->choices.emplace_back("RESTAURANT BANKRUPT");
-	menu->choices.emplace_back("QUIT", [](){
-			Mode::set_current(nullptr);
-			});
+    menu->choices.emplace_back("GAME OVER");
+    menu->choices.emplace_back("RESTAURANT BANKRUPT");
+    menu->choices.emplace_back("QUIT", [](){
+            Mode::set_current(nullptr);
+            });
 
-	menu->selected = 2;
+    menu->selected = 1;
 
-	Mode::set_current(menu);
+    Mode::set_current(menu);
 }
 
 void GameMode::show_win() {
-	level++;
-	scores.emplace_back(50);
+    level++;
+    scores.emplace_back(50);
 
-	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+    std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
-	std::shared_ptr< Mode > game = shared_from_this();
-	menu->background = game;
+    std::shared_ptr< Mode > game = shared_from_this();
+    menu->background = game;
 
-	menu->choices.emplace_back("LEVEL PASSED");
-	menu->choices.emplace_back("CONTINUE", [game](){
-				Mode::set_current(game);
-			});
+    menu->choices.emplace_back("LEVEL PASSED");
+    menu->choices.emplace_back("CONTINUE", [game](){
+                Mode::set_current(game);
+            });
 
-	menu->selected = 1;
+    menu->selected = 1;
 
-	Mode::set_current(menu);
+    Mode::set_current(menu);
 }
+=======
+    // update bbx
+	object_transform->boundingbox->update_origin(object_transform->position);
+}
+>>>>>>> e282c30e52cd9640fedb63db220377194f4e7b89

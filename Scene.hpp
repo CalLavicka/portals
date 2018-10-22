@@ -31,7 +31,7 @@ struct Scene {
 		//Generally, you shouldn't manipulate the above pointers directly.
 	
 	    //physical properties
-		glm::vec2 speed = glm::vec2(2.0f, 10.0f);
+		glm::vec2 speed = glm::vec2(0.0f, 10.0f);
 		BoundingBox *boundingbox = nullptr;
 
 		//Add transform to the child list of 'parent', before child 'before' (or at end, if 'before' is not given):
@@ -152,6 +152,8 @@ struct Scene {
 		float near = 0.01f; //near plane
 		//computed from the above:
 		glm::mat4 make_projection() const;
+		bool is_perspective = true;
+		float ortho_scale = 10.f;
 
 		//used by Scene to manage allocation:
 		Camera **alloc_prev_next = nullptr;

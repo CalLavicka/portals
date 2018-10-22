@@ -7,7 +7,7 @@ Portal::Portal() {
     this->position = vec2(0.0f, 1.0f);
     this->normal = vec2(0.0f, 1.0f);
 
-    this->boundingbox = new BoundingBox(14.0f, 0.9f);
+    this->boundingbox = new BoundingBox(12.0f, 0.9f);
     this->update_boundingbox();  // set boundingbox position
 }
 
@@ -19,8 +19,16 @@ void Portal::move(vec2 const &vec) {
     this->position = this->position + vec;
 
     this->portal_transform->position = vec3(this->position, 0);
+<<<<<<< HEAD
+    //printf("X: %f, Y: %f, Z: %f\n", portal_transform->position.x,
+    //portal_transform->position.y, portal_transform->position.z);
+=======
+    printf("X: %f, Y: %f, Z: %f\n", portal_transform->position.x,
+                                    portal_transform->position.y, 
+                                    portal_transform->position.z);
     
     this->update_boundingbox();  // update bbx when position changes
+>>>>>>> e282c30e52cd9640fedb63db220377194f4e7b89
 }
 
 void Portal::rotate(float const &to_rot) {
@@ -29,10 +37,14 @@ void Portal::rotate(float const &to_rot) {
     vec2 newnormal = vec2(normal.x * cc - normal.y * ss, normal.x * ss + normal.y * cc);
     normal = newnormal;
 
+<<<<<<< HEAD
     //this->portal_transform->rotation = angleAxis(atan2f(normal.y, normal.x), vec3(0,0,1));
     this->portal_transform->rotation = angleAxis(atan2f(-normal.x, normal.y), vec3(0,0,1)) * angleAxis(0.3f, vec3(1,0,0));
+=======
+    this->portal_transform->rotation = angleAxis(atan2f(normal.y, normal.x), vec3(0,0,1));
 
     this->update_boundingbox();  // update bbx when orientation changes
+>>>>>>> e282c30e52cd9640fedb63db220377194f4e7b89
 }
 
 void Portal::update_boundingbox() {
@@ -45,7 +57,7 @@ bool Portal::is_in_portal(const Scene::Transform *object_transform) {
     
     for (auto &corner : bbx_corners) {
         // check every corner is in range
-        float projected_length = glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel);
+        float projected_length = std::abs(glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel));
         if (projected_length < 0.0f || projected_length > this->boundingbox->width) return false;
     }
 

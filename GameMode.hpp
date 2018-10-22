@@ -10,6 +10,8 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <vector>
+#include <random>
+#include <list>
 
 #include "manymouse/manymouse.h"
 #include "Portal.hpp"
@@ -33,13 +35,31 @@ struct GameMode : public Mode {
 	//draw is called after update:
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
+	void load_scene();
+	void spawn_food();
+
+	std::mt19937 random_gen;
 	float camera_spin = 0.0f;
 	float spot_spin = 0.0f;
+	float fruit_timer = 5.f;
 
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
-	float sensitivities[2] = {10.f,10.f};
+	float sensitivities[2] = {70.f,70.f};
+    std::vector <uint32_t> scores = {50};
+    uint32_t level = 0;
+	uint32_t fruit_hit = 0;
+
+	std::list<Scene::Object *> foods;
+
+	std::vector<Scene::Object *> pots;
 
     // teleport the object to the assigned portal
 	void teleport(Scene::Transform *object_transform, const uint32_t to_portal);
+
+    void show_pause_menu();
+    void show_lose();
+    void show_win();
+
+    Scene *scene;
 };
