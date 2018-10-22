@@ -55,8 +55,11 @@ bool Portal::is_in_portal(const Scene::Transform *object_transform) {
     float parallel_dist = std::abs(glm::dot(object_center - this->position, this->boundingbox->parallel));
     float center_dist = glm::distance(object_center, this->position);
     float perpendicular_dist = std::sqrt(center_dist*center_dist - parallel_dist*parallel_dist);
-    float object_diag_len = std::sqrt(object_bbx->width*object_bbx->width + object_bbx->thickness*object_bbx->thickness);
-    return perpendicular_dist < 0.5f*(this->boundingbox->thickness + object_diag_len);
+    return perpendicular_dist < 0.5f*this->boundingbox->thickness;  // return true when half way through
+
+    /* return true upon touch */
+    // float object_diag_len = std::sqrt(object_bbx->width*object_bbx->width + object_bbx->thickness*object_bbx->thickness);
+    // return perpendicular_dist < 0.5f*(this->boundingbox->thickness + object_diag_len);
 }
 
 bool Portal::should_teleport(const Scene::Transform *object_transform) {

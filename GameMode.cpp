@@ -746,10 +746,7 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 	const Portal &from_portal = players[!to_portal_id];
 	const Portal &  to_portal = players[ to_portal_id];
 
-	// move to new potision: dummy implementation
-	object_transform->position = glm::vec3(to_portal.position, 0.0f);
-
-	{  // compute new speed
+	{  // compute new position and speed
 		// find angle between from_portal_normal and to_portal_normal (phi)
 		//                    from_portal_normal and    -object_speed (theta)
 		const glm::vec2 &from_normal = from_portal.normal;
@@ -765,9 +762,15 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 		float phi = angle_between(from_normal, to_normal);
 		float theta = angle_between(from_normal, object_transform->speed);
 
+        // rotate position by phi
+		glm::mat4 pos_rotation = glm::rotate(glm::mat4(1.f), phi, glm::vec3(0.0f, 0.0f, 1.0f));
+		auto pos_diff = glm::vec2(object_transform->position) - from_portal.position;
+		auto rotated_pos_diff = glm::vec2(pos_rotation * glm::vec4(pos_diff, 0.0f, 1.0f));
+		object_transform->position = glm::vec3(to_portal.position + rotated_pos_diff, 0.0f);
+
 		// rotate speed by phi - 2*theta
-		glm::mat4 rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
-		object_transform->speed = glm::vec2(rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+		glm::mat4 speed_rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
+		object_transform->speed = glm::vec2(speed_rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
 	}
 
 	// update bbx
