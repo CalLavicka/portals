@@ -770,7 +770,12 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 
 		// rotate speed by phi - 2*theta
 		glm::mat4 speed_rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
-		object_transform->speed = glm::vec2(speed_rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+		auto new_speed = glm::vec2(speed_rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+		// boost if new_speed is too slow
+		float speed_lowerbound = 5.0f;
+		object_transform->speed = (glm::length(new_speed) < speed_lowerbound) ? 
+		                          speed_lowerbound * glm::normalize(object_transform->speed) :
+								  new_speed;
 	}
 
 	// update bbx
