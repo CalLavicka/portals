@@ -49,6 +49,11 @@ Load< GLuint > vegetable_meshes_for_depth_program(LoadTagDefault, [](){
 	return new GLuint(vegetable_meshes->make_vao_for_program(depth_program->program));
 });
 
+Load< BoundingBoxBuffer > bbxes(LoadTagDefault, [](){
+	return new BoundingBoxBuffer(data_path("vegetables.bbx"));
+});
+
+
 //used for fullscreen passes:
 Load< GLuint > empty_vao(LoadTagDefault, [](){
 	GLuint vao = 0;
@@ -271,6 +276,12 @@ void GameMode::load_scene() {
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+
+        // set up portal bbx
+		p0_trans->boundingbox = bbxes->lookup("Portal");
+		p0_trans->boundingbox->width = 14.0f;
+		p0_trans->boundingbox->thickness = 0.9f;
+		p0_trans->boundingbox->init_obj_center(p0_trans->position);
 	}
 
 	{ // Portal 2
@@ -286,6 +297,12 @@ void GameMode::load_scene() {
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+
+        // set up portal bbx
+		p1_trans->boundingbox = bbxes->lookup("Portal");
+		p1_trans->boundingbox->width = 14.0f;
+		p1_trans->boundingbox->thickness = 0.9f;
+		p1_trans->boundingbox->init_obj_center(p1_trans->position);
 	}
 
 	camera_parent_transform = ret->new_transform();
@@ -312,10 +329,13 @@ void GameMode::load_scene() {
 			obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 			obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
 			obj->transform->position = glm::vec3(30.f * i - 30.f,-40.f,0.f);
-			obj->transform->scale = glm::vec3(0.3f,0.3f,0.3f);
+			obj->transform->scale = glm::vec3(1.0f,1.0f,1.0f);
 			obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
-			obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
-			obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
+
+            // setup pot bounding box
+            obj->transform->boundingbox = bbxes->lookup("Pot");
+			obj->transform->boundingbox->init_obj_center(obj->transform->position);
+
 			pots.push_back(obj);
 		}
 	}
@@ -345,7 +365,8 @@ void GameMode::spawn_food() {
 
 	obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
-	MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup(food_names[random_gen() % 4]);
+    auto food_idx = random_gen() % 4;
+	MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup(food_names[food_idx]);
 	obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 	obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
 
@@ -353,8 +374,11 @@ void GameMode::spawn_food() {
 	obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
 	obj->transform->position = glm::vec3(random_gen() % 100 - 50.f,50.f,0.f);
 	obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
-	obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
-	obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
+
+    // set up food bbx
+    obj->transform->boundingbox = bbxes->lookup(food_names[food_idx]);
+    obj->transform->boundingbox->init_obj_center(obj->transform->position);
+
 	foods.push_back(obj);
 }
 
@@ -439,8 +463,6 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 void GameMode::update(float elapsed) {
 	//spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
 
-	//compute simple movement of the Cube
-
 	players[0].rotate(elapsed * rot_speeds[0]);
 	players[1].rotate(elapsed * rot_speeds[1]);
 
@@ -448,14 +470,14 @@ void GameMode::update(float elapsed) {
 		Scene::Transform *food_transform = (*iter)->transform;
 	
 		{  // teleport
-			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
-							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
-			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
-				players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
+			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness)
+							  + std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
+			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold
+			    && players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
 
 				teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
-			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
-				players[1].should_teleport(food_transform)) {
+			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold
+			           && players[1].should_teleport(food_transform)) {
 
 				teleport(food_transform, 0);
 			}
@@ -471,40 +493,41 @@ void GameMode::update(float elapsed) {
 		}
 
 
-		bool collided = false;
-		for(Scene::Object * pot : pots) {
-			// TODO: Check for collision with pot with bounding boxes
-			if(food_transform->position.y < -38.f && food_transform->position.x > pot->transform->position.x - 10.f &&
-					food_transform->position.x < pot->transform->position.x + 10.f) {
-				scores[level]+=10;
-				fruit_hit++;
-				if(fruit_hit == 20) {
-					show_win();
+		{  // TODO: Check for collision with pot with bounding boxes
+			bool collided = false;
+			for(Scene::Object * pot : pots) {
+				if (pot->transform->boundingbox->is_enclosing(food_transform->boundingbox)) {
+					scores[level]+=10;
+					fruit_hit++;
+					if(fruit_hit == 20) {
+						show_win();
+					}
+			
+					scene->delete_transform(food_transform);
+					scene->delete_object(*iter);
+					auto temp = iter;
+					++iter;
+					foods.erase(temp);
+					collided = true;
+					break;
 				}
-		
+			}
+			if(collided) continue;
+		}
+
+		{  // OFF THE TABLE
+			if (food_transform->position.y < -60.f) {
+				printf("Food fell off...\n");
+				scores[level]-=10;
+				if(scores[level]==0)
+					show_lose();
 				scene->delete_transform(food_transform);
 				scene->delete_object(*iter);
 				auto temp = iter;
 				++iter;
 				foods.erase(temp);
-				collided = true;
-				break;
+				continue;
 			}
-		}
-		if(collided) continue;
-
-		if (food_transform->position.y < -60.f) {
-			// OFF THE TABLE
-			printf("Food fell off...\n");
-			scores[level]-=10;
-			if(scores[level]==0)
-				show_lose();
-			scene->delete_transform(food_transform);
-			scene->delete_object(*iter);
-			auto temp = iter;
-			++iter;
-			foods.erase(temp);
-			continue;
 		}
 
 		++iter;

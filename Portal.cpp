@@ -6,9 +6,6 @@ using namespace glm;
 Portal::Portal() {
     this->position = vec2(0.0f, 1.0f);
     this->normal = vec2(0.0f, 1.0f);
-
-    this->boundingbox = new BoundingBox(14.0f, 0.9f);
-    this->update_boundingbox();  // set boundingbox position
 }
 
 Portal::~Portal() {
@@ -40,7 +37,7 @@ void Portal::update_boundingbox() {
 }
 
 bool Portal::is_in_portal(const Scene::Transform *object_transform) {
-    const BoundingBox *object_bbx = object_transform->boundingbox;
+    const std::shared_ptr< BoundingBox > object_bbx = object_transform->boundingbox;
     std::vector< glm::vec2 > bbx_corners = object_bbx->get_corners();
     
     for (auto &corner : bbx_corners) {

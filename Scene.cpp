@@ -405,6 +405,4 @@ void Scene::load(std::string const &filename,
 		lamp->energy = glm::vec3(l.color) * l.energy;
 		lamp->fov = l.fov / 180.0f * 3.1415926f; //FOV is stored in degrees; convert to radians.
 	}
-
-
 }

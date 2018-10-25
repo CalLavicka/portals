@@ -32,7 +32,7 @@ struct Scene {
 	
 	    //physical properties
 		glm::vec2 speed = glm::vec2(0.0f, 10.0f);
-		BoundingBox *boundingbox = nullptr;
+		std::shared_ptr< BoundingBox > boundingbox = nullptr;
 
 		//Add transform to the child list of 'parent', before child 'before' (or at end, if 'before' is not given):
 		void set_parent(Transform *parent, Transform *before = nullptr);
@@ -55,11 +55,6 @@ struct Scene {
 			}
 			if (parent) {
 				set_parent(nullptr);
-			}
-
-            // delete allocated boundingbox
-			if (boundingbox) {
-				delete boundingbox;
 			}
 		}
 
