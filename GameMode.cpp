@@ -15,6 +15,8 @@
 #include "texture_program.hpp"
 #include "depth_program.hpp"
 
+#include "BasicLevel.hpp"
+
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
@@ -184,72 +186,6 @@ void GameMode::load_scene() {
 	depth_program_info.vao = *meshes_for_depth_program;
 	depth_program_info.mvp_mat4  = depth_program->object_to_clip_mat4;
 
-	/*
-	//load transform hierarchy:
-	ret->load(data_path("vignette.scene"), [&](Scene &s, Scene::Transform *t, std::string const &m){
-		Scene::Object *obj = s.new_object(t);
-
-		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-		if (t->name == "Platform") {
-			obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *wood_tex;
-		} else if (t->name == "Pedestal") {
-			obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *marble_tex;
-		} else {
-			obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
-		}
-
-		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
-
-		MeshBuffer::Mesh const &mesh = meshes->lookup(m);
-		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
-		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
-		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
-	});
-
-	//look up camera parent transform:
-	for (Scene::Transform *t = ret->first_transform; t != nullptr; t = t->alloc_next) {
-		if (t->name == "CameraParent") {
-			if (camera_parent_transform) throw std::runtime_error("Multiple 'CameraParent' transforms in scene.");
-			camera_parent_transform = t;
-		}
-		if (t->name == "SpotParent") {
-			if (spot_parent_transform) throw std::runtime_error("Multiple 'SpotParent' transforms in scene.");
-			spot_parent_transform = t;
-		}
-		if (t->name == "Cube") {
-			if (cube_transform) throw std::runtime_error("Multiple 'Cube' transforms in scene.");
-			cube_transform = t;
-
-			// hard code the bbx of cube for now
-			cube_transform->boundingbox = new BoundingBox(2.0f, 2.0f);
-			cube_transform->boundingbox->update_origin(cube_transform->position, glm::vec2(0.0f, 1.0f));
-		}
-	}
-	if (!camera_parent_transform) throw std::runtime_error("No 'CameraParent' transform in scene.");
-	if (!spot_parent_transform) throw std::runtime_error("No 'SpotParent' transform in scene.");
-
-	//look up the camera:
-	for (Scene::Camera *c = ret->first_camera; c != nullptr; c = c->alloc_next) {
-		if (c->transform->name == "Camera") {
-			if (camera) throw std::runtime_error("Multiple 'Camera' objects in scene.");
-			camera = c;
-		}
-	}
-	if (!camera) throw std::runtime_error("No 'Camera' camera in scene.");
-
-	//look up the spotlight:
-	for (Scene::Lamp *l = ret->first_lamp; l != nullptr; l = l->alloc_next) {
-		if (l->transform->name == "Spot") {
-			if (spot) throw std::runtime_error("Multiple 'Spot' objects in scene.");
-			if (l->type != Scene::Lamp::Spot) throw std::runtime_error("Lamp 'Spot' is not a spotlight.");
-			spot = l;
-		}
-	}
-	if (!spot) throw std::runtime_error("No 'Spot' spotlight in scene.");
-	*/
-
 	// Adjust for veges
 	texture_program_info.vao = *vegetable_meshes_for_texture_program;
 	depth_program_info.vao = *vegetable_meshes_for_depth_program;
@@ -297,65 +233,9 @@ void GameMode::load_scene() {
 	camera_parent_transform->rotation = glm::angleAxis(glm::radians(0.f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 
-	{ // Add the three pots
-		for(int i=0; i<3; i++) {
-			Scene::Object *obj = ret->new_object(ret->new_transform());
-			obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-			obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
-
-			obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
-
-			MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Pot");
-			obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
-			obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-			obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
-			obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
-			obj->transform->position = glm::vec3(30.f * i - 30.f,-40.f,0.f);
-			obj->transform->scale = glm::vec3(0.3f,0.3f,0.3f);
-			obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
-			obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
-			obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
-			pots.push_back(obj);
-		}
-	}
-
 	scene = ret;
-}
 
-std::string food_names[] = {"Broccoli", "Potato", "Carrot", "Mushroom"};
-
-void GameMode::spawn_food() {
-
-	Scene::Object::ProgramInfo texture_program_info;
-	texture_program_info.program = texture_program->program;
-	texture_program_info.vao = *vegetable_meshes_for_texture_program;
-	texture_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
-	texture_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
-	texture_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
-
-	Scene::Object::ProgramInfo depth_program_info;
-	depth_program_info.program = depth_program->program;
-	depth_program_info.vao = *vegetable_meshes_for_depth_program;
-	depth_program_info.mvp_mat4  = depth_program->object_to_clip_mat4;
-
-	Scene::Object *obj = scene->new_object(scene->new_transform());
-	obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-	obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
-
-	obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
-
-	MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup(food_names[random_gen() % 4]);
-	obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
-	obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-	obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
-	obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
-	obj->transform->position = glm::vec3(random_gen() % 100 - 50.f,50.f,0.f);
-	obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
-	obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
-	obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
-	foods.push_back(obj);
+	current_level = new BasicLevel(this, texture_program_info, depth_program_info);
 }
 
 GameMode::GameMode() {
@@ -374,18 +254,6 @@ bool GameMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	//ignore any keys that are the result of automatic key repeat:
 	if (evt.type == SDL_KEYDOWN && evt.key.repeat) {
 		return false;
-	}
-
-	if (evt.type == SDL_MOUSEMOTION) {
-		if (evt.motion.state & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-			camera_spin += 5.0f * evt.motion.xrel / float(window_size.x);
-			return true;
-		}
-		if (evt.motion.state & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
-			spot_spin += 5.0f * evt.motion.xrel / float(window_size.x);
-			return true;
-		}
-
 	}
 
 	if(evt.type == SDL_KEYDOWN){
@@ -437,9 +305,8 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
-	//spot_parent_transform->rotation = glm::angleAxis(spot_spin, glm::vec3(0.0f, 0.0f, 1.0f));
-
-	//compute simple movement of the Cube
+	
+	current_level->update(elapsed);
 
 	players[0].rotate(elapsed * rot_speeds[0]);
 	players[1].rotate(elapsed * rot_speeds[1]);
@@ -476,29 +343,25 @@ void GameMode::update(float elapsed) {
 			// TODO: Check for collision with pot with bounding boxes
 			if(food_transform->position.y < -38.f && food_transform->position.x > pot->transform->position.x - 10.f &&
 					food_transform->position.x < pot->transform->position.x + 10.f) {
-				scores[level]+=10;
-				fruit_hit++;
-				if(fruit_hit == 20) {
-					show_win();
-				}
+
+				collided = current_level->collision(*iter, pot);
 		
-				scene->delete_transform(food_transform);
-				scene->delete_object(*iter);
-				auto temp = iter;
-				++iter;
-				foods.erase(temp);
-				collided = true;
-				break;
+				if (collided) break;
 			}
 		}
-		if(collided) continue;
+		if(collided) {
+			scene->delete_transform(food_transform);
+			scene->delete_object(*iter);
+			auto temp = iter;
+			++iter;
+			foods.erase(temp);
+			continue;
+		}
 
 		if (food_transform->position.y < -60.f) {
 			// OFF THE TABLE
 			printf("Food fell off...\n");
-			scores[level]-=10;
-			if(scores[level]==0)
-				show_lose();
+			current_level->fall_off(*iter);
 			scene->delete_transform(food_transform);
 			scene->delete_object(*iter);
 			auto temp = iter;
@@ -508,12 +371,6 @@ void GameMode::update(float elapsed) {
 		}
 
 		++iter;
-	}
-
-	fruit_timer -= elapsed;
-	if(fruit_timer < 0.f) {
-		fruit_timer += 5.f;
-		spawn_food();
 	}
 }
 

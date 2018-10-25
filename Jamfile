@@ -83,6 +83,7 @@ CLIENT_NAMES =
 	Sound
 	Portal
 	BoundingBox
+	BasicLevel
 	;
 
 C_NAMES =

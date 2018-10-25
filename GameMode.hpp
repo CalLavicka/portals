@@ -15,6 +15,11 @@
 
 #include "manymouse/manymouse.h"
 #include "Portal.hpp"
+#include "Load.hpp"
+
+// Forward declaration before including level
+struct GameMode;
+#include "Level.hpp"
 
 // The 'GameMode' mode is the main gameplay mode:
 
@@ -36,22 +41,18 @@ struct GameMode : public Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
 	void load_scene();
-	void spawn_food();
 
 	std::mt19937 random_gen;
-	float camera_spin = 0.0f;
-	float spot_spin = 0.0f;
-	float fruit_timer = 5.f;
 
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
 	float sensitivities[2] = {70.f,70.f};
     std::vector <uint32_t> scores = {50};
     uint32_t level = 0;
-	uint32_t fruit_hit = 0;
+
+	Level *current_level = nullptr;
 
 	std::list<Scene::Object *> foods;
-
 	std::vector<Scene::Object *> pots;
 
     // teleport the object to the assigned portal
@@ -63,3 +64,11 @@ struct GameMode : public Mode {
 
     Scene *scene;
 };
+
+extern Load< MeshBuffer > vegetable_meshes;
+
+extern Load< GLuint > vegetable_meshes_for_texture_program;
+
+extern Load< GLuint > vegetable_meshes_for_depth_program;
+
+extern Load< GLuint > white_tex;
