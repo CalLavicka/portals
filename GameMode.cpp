@@ -61,6 +61,82 @@ Load< GLuint > empty_vao(LoadTagDefault, [](){
 	return new GLuint(vao);
 });
 
+Load< GLuint > bloom_program(LoadTagDefault, [](){
+        GLuint program = compile_program(
+                //this draws a triangle that covers the entire screen:
+                "#version 330\n"
+                "void main() {\n"
+                "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
+                "}\n"
+                ,
+                //NOTE on reading screen texture:
+                //texelFetch() gives direct pixel access with integer coordinates, but accessing out-of-bounds pixel is undefined:
+                //	vec4 color = texelFetch(tex, ivec2(gl_FragCoord.xy), 0);
+                //texture() requires using [0,1] coordinates, but handles out-of-bounds more gracefully (using wrap settings of underlying texture):
+                //	vec4 color = texture(tex, gl_FragCoord.xy / textureSize(tex,0));
+
+                "#version 330\n"
+                "uniform sampler2D tex;\n"
+               "out vec4 fragColor;\n"
+                "void main() {\n"
+                "	vec2 at = (gl_FragCoord.xy - 0.5 * textureSize(tex, 0)) / textureSize(tex, 0).y;\n"
+
+                //pick a vector to move in for blur using function inspired by:
+                //https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
+                "float distance = 8.0f;\n"
+                "	vec2 ofs = distance * normalize(vec2(\n"
+                "		fract(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))),\n"
+                "		fract(dot(gl_FragCoord.xy ,vec2(96.3869,-27.5796)))\n"
+                "	));\n"
+                //referenced guidance on Piazza:
+                //https://piazza.com/class/jlfaf4xoz4y665?cid=65
+                //I did read this too though:
+                //https://learnopengl.com/Advanced-Lighting/Bloom
+                "vec4 center = texture(tex, gl_FragCoord.xy/textureSize(tex, 0));\n"
+
+                "vec4 blur = center;\n"
+                "float centerB = dot(blur.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "float brightness;\n"
+                "float threshold = 2.0;\n"
+                "float influence = .3;\n"
+
+                "vec4 n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.x, ofs.y))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.y, ofs.x))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.x, -ofs.y))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold) \n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.y, -ofs.x))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "	fragColor = vec4(blur.rgb, 1.0);\n"
+                "}\n"
+                );
+
+        glUseProgram(program);
+
+        glUniform1i(glGetUniformLocation(program, "tex"), 0);
+
+        glUseProgram(0);
+
+        return new GLuint(program);
+});
+
 Load< GLuint > blur_program(LoadTagDefault, [](){
 	GLuint program = compile_program(
 		//this draws a triangle that covers the entire screen:
@@ -338,7 +414,7 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
-	
+
 	current_level->update(elapsed);
 
 	players[0].rotate(elapsed * rot_speeds[0]);
@@ -346,9 +422,9 @@ void GameMode::update(float elapsed) {
 
 	for(auto iter = foods.begin(); iter != foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;
-	
+
 		{  // teleport
-			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
+			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
 							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
 			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
 				players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
@@ -362,7 +438,7 @@ void GameMode::update(float elapsed) {
 		}
 
 		{ // See if in a portal
-			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
+			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
 							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
 			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
 				players[0].is_in_vicinity(food_transform)) {  // Portal::should_teleport(object_transform)
@@ -409,7 +485,7 @@ void GameMode::update(float elapsed) {
 					food_transform->position.x < pot->transform->position.x + 10.f) {
 
 				collided = current_level->collision(*iter, pot);
-		
+
 				if (collided) break;
 			}
 		}
@@ -709,7 +785,8 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	//Copy scene from color buffer to screen, performing post-processing effects:
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, fbs.color_tex);
-	glUseProgram(*blur_program);
+//	glUseProgram(*blur_program);
+    glUseProgram(*bloom_program);
 	glBindVertexArray(*empty_vao);
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -769,7 +846,7 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 			auto new_speed = glm::vec2(speed_rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
 			// boost if new_speed is too slow
 			float speed_lowerbound = 5.0f;
-			object_transform->speed = (glm::length(new_speed) < speed_lowerbound) ? 
+			object_transform->speed = (glm::length(new_speed) < speed_lowerbound) ?
 									speed_lowerbound * glm::normalize(object_transform->speed) :
 									new_speed;
 			*/
