@@ -75,5 +75,8 @@ bool BasicLevel::collision(Scene::Object *o1, Scene::Object *o2) {
 }
 
 void BasicLevel::fall_off(Scene::Object *o) {
-
+	glm->scores[gm->level] -= 10;
+	if(gm->scores[gm->level] <= 0) {
+		gm->show_lose();
+	}
 }

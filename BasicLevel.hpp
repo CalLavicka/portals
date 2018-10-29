@@ -15,5 +15,5 @@ struct BasicLevel : public Level {
 
     void spawn_food();
 	uint32_t fruit_hit = 0;
-	float fruit_timer = 5.f;
+	float fruit_timer = 0.f;
 };

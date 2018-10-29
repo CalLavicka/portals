@@ -11,6 +11,8 @@
 #include <functional>
 #include <string>
 
+struct Portal;
+
 //"Scene" manages a hierarchy of transformations with, potentially, attached information.
 struct Scene {
 
@@ -103,6 +105,9 @@ struct Scene {
 		//used by Scene to manage allocation:
 		Object **alloc_prev_next = nullptr;
 		Object *alloc_next = nullptr;
+
+		// Which portal it is in
+		Portal *portal_in = nullptr;
 	};
 
 	//"Lamp"s contain information about lights:
@@ -194,7 +199,7 @@ struct Scene {
 
 	//Draw the scene from a given camera by computing appropriate matrices and sending all objects to OpenGL:
 	//"camera" must be non-null!
-	void draw(Camera const *camera, Object::ProgramType = Object::ProgramTypeDefault ) const;
+	void draw(Camera const *camera, Object::ProgramType = Object::ProgramTypeDefault, Portal * = nullptr ) const;
 
 	//Draw the scene from a given lamp by computing appropriate matrices and sending all objects to OpenGL:
 	//"lamp" must be non-null!
@@ -203,7 +208,7 @@ struct Scene {
 	//More general draw function. Will render with a specified projection transformation and use programs in the given slot of all objects:
 	void draw(
 		glm::mat4 const &world_to_clip,
-		Object::ProgramType program_type) const;
+		Object::ProgramType program_type, Portal * = nullptr ) const;
 
 	~Scene(); //destructor deallocates transforms, objects, cameras
 
@@ -213,3 +218,6 @@ struct Scene {
 		std::function< void(Scene &, Transform *, std::string const &) > const &on_object = nullptr
 	);
 };
+
+
+#include "Portal.hpp"

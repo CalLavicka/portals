@@ -49,17 +49,34 @@ bool Portal::is_in_portal(const Scene::Transform *object_transform) {
         if (projected_length < 0.0f || projected_length > this->boundingbox->width) return false;
     }
 
-    // check the distance of center of object_bbx and the line pass through the center of portal_center with direction "parallel"
+    // check the distance of center of object_bbx and the line pass through the center
+    // of portal_center with direction "parallel"
     // pretty hard to describe in words...
     glm::vec2 object_center = glm::vec2(object_transform->position);
     float parallel_dist = std::abs(glm::dot(object_center - this->position, this->boundingbox->parallel));
     float center_dist = glm::distance(object_center, this->position);
+    float norm_dot = glm::dot(object_center - this->position, this->normal);
     float perpendicular_dist = std::sqrt(center_dist*center_dist - parallel_dist*parallel_dist);
-    return perpendicular_dist < 0.5f*this->boundingbox->thickness;  // return true when half way through
+    return perpendicular_dist < 0.5f*this->boundingbox->thickness && norm_dot < 0.0f;  // return true when half way through
 
     /* return true upon touch */
     // float object_diag_len = std::sqrt(object_bbx->width*object_bbx->width + object_bbx->thickness*object_bbx->thickness);
     // return perpendicular_dist < 0.5f*(this->boundingbox->thickness + object_diag_len);
+}
+
+bool Portal::is_in_vicinity(const Scene::Transform *object_transform) {
+    const BoundingBox *object_bbx = object_transform->boundingbox;
+    std::vector< glm::vec2 > bbx_corners = object_bbx->get_corners();
+    
+    for (auto &corner : bbx_corners) {
+        // check every corner is in range
+        float projected_length = glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel);
+        if (projected_length < 0.0f || projected_length > this->boundingbox->width) return false;
+    }
+
+    // Make sure its above portal
+    glm::vec2 between = vec2(object_transform->position) - position;
+    return glm::dot(between, normal) >= 0.0f;
 }
 
 bool Portal::should_teleport(const Scene::Transform *object_transform) {

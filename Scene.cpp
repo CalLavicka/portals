@@ -113,7 +113,7 @@ glm::mat4 Scene::Camera::make_projection() const {
 	if (is_perspective) {
 		return glm::infinitePerspective( fovy, aspect, near );
 	} else {
-		return glm::ortho(-ortho_scale * aspect,ortho_scale * aspect,-ortho_scale,ortho_scale, near, 1000.f);
+		return glm::ortho(-ortho_scale * aspect,ortho_scale * aspect,-ortho_scale,ortho_scale, near, 50.f);
 	}
 }
 
@@ -180,7 +180,7 @@ void Scene::delete_camera(Scene::Camera *object) {
 	list_delete< Scene::Camera >(object);
 }
 
-void Scene::draw(Scene::Camera const *camera, Object::ProgramType program_type) const {
+void Scene::draw(Scene::Camera const *camera, Object::ProgramType program_type, Portal *portal) const {
 	assert(camera && "Must have a camera to draw scene from.");
 	assert(program_type < Object::ProgramTypes);
 
@@ -188,7 +188,7 @@ void Scene::draw(Scene::Camera const *camera, Object::ProgramType program_type) 
 
 	glm::mat4 world_to_clip = camera->make_projection() * world_to_camera;
 
-	draw(world_to_clip, program_type);
+	draw(world_to_clip, program_type, portal);
 }
 
 void Scene::draw(Scene::Lamp const *lamp, Object::ProgramType program_type) const {
@@ -202,10 +202,15 @@ void Scene::draw(Scene::Lamp const *lamp, Object::ProgramType program_type) cons
 }
 
 
-void Scene::draw(glm::mat4 const &world_to_clip, Object::ProgramType program_type) const {
+void Scene::draw(glm::mat4 const &world_to_clip, Object::ProgramType program_type, Portal *portal) const {
 	assert(program_type < Object::ProgramTypes);
 
 	for (Scene::Object *object = first_object; object != nullptr; object = object->alloc_next) {
+
+		// Only draw if in specific portal, or in no portal
+		if (object->portal_in != portal) {
+			continue;
+		}
 
 		//don't draw if no program of this type attached to object:
 		if (object->programs[program_type].program == 0) continue;

@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <random>
 
+using namespace glm;
 
 Load< MeshBuffer > meshes(LoadTagDefault, [](){
 	return new MeshBuffer(data_path("vignette.pnct"));
@@ -104,6 +105,37 @@ Load< GLuint > blur_program(LoadTagDefault, [](){
 	glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
 	glUseProgram(0);
+
+	return new GLuint(program);
+});
+
+Load< GLuint > portal_depth_program(LoadTagDefault, [](){
+	GLuint program = compile_program(
+		//this draws a triangle that covers the entire screen:
+		"#version 330\n"
+		"uniform vec2 portalNorm;\n"
+		"uniform mat4 mvp;"
+		"void main() {\n"
+		"	vec2 pt = vec2(mvp * vec4(0.0, 0.0, 0.0, 1.0));\n"
+		"   vec2 par = vec2(-portalNorm.y, portalNorm.x);\n"
+		"   vec2 norm = portalNorm * 1000.0;\n"
+		"   pt = pt - portalNorm * (gl_VertexID & 1) + par * ((gl_VertexID & 2) - 1);\n"
+		"	gl_Position = vec4(pt, -1.0, 1.0);\n"
+		//"	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, -1.0, 1.0);\n"
+		"}\n"
+		,
+		//NOTE on reading screen texture:
+		//texelFetch() gives direct pixel access with integer coordinates, but accessing out-of-bounds pixel is undefined:
+		//	vec4 color = texelFetch(tex, ivec2(gl_FragCoord.xy), 0);
+		//texture() requires using [0,1] coordinates, but handles out-of-bounds more gracefully (using wrap settings of underlying texture):
+		//	vec4 color = texture(tex, gl_FragCoord.xy / textureSize(tex,0));
+
+		"#version 330\n"
+		"out vec4 fragColor;\n"
+		"void main() {\n"
+		"	fragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"
+		"}\n"
+	);
 
 	return new GLuint(program);
 });
@@ -228,8 +260,9 @@ void GameMode::load_scene() {
 	camera = ret->new_camera(camera_parent_transform);
 	camera->is_perspective = false;
 	camera->ortho_scale = 50.f;
+	camera->near = 1.f;
 
-	camera_parent_transform->position = glm::vec3(0,0,50);
+	camera_parent_transform->position = glm::vec3(0,0,25);
 	camera_parent_transform->rotation = glm::angleAxis(glm::radians(0.f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 
@@ -325,6 +358,37 @@ void GameMode::update(float elapsed) {
 				players[1].should_teleport(food_transform)) {
 
 				teleport(food_transform, 0);
+			}
+		}
+
+		{ // See if in a portal
+			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) + 
+							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
+			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
+				players[0].is_in_vicinity(food_transform)) {  // Portal::should_teleport(object_transform)
+
+				if((*iter)->portal_in == &players[1]) {
+					(*iter)->portal_in->vicinity.erase(*iter);
+				}
+				(*iter)->portal_in = &players[0];
+				players[0].vicinity.insert(*iter);
+				//printf("IN P0 vicinity\n");
+			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
+				players[1].is_in_vicinity(food_transform)) {
+
+
+				if((*iter)->portal_in == &players[0]) {
+					(*iter)->portal_in->vicinity.erase(*iter);
+				}
+
+				(*iter)->portal_in = &players[1];
+				players[1].vicinity.insert(*iter);
+				//printf("IN P1 vicinity\n");
+			} else {
+				if((*iter)->portal_in != nullptr) {
+					(*iter)->portal_in->vicinity.erase(*iter);
+				}
+				(*iter)->portal_in = nullptr;
 			}
 		}
 
@@ -572,9 +636,65 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
 
-	scene->draw(camera);
+	// Draw non-portalled things
+	scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
+
+	auto draw_portal = [this](Portal &p) {
+		glUseProgram(*portal_depth_program);
+		glBindVertexArray(*empty_vao);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		static GLuint portal_norm = glGetUniformLocation(*portal_depth_program, "portalNorm");
+		static GLuint mvp_mat4 = glGetUniformLocation(*portal_depth_program, "mvp");
+
+		glm::mat4 mvp = camera->make_projection() * camera->transform->make_world_to_local() * p.portal_transform->make_local_to_world();
+
+		//glm::vec2 pt = glm::vec2(mvp * glm::vec4(players[0].position, 0, 1));
+
+		glUniformMatrix4fv(mvp_mat4, 1, GL_FALSE, glm::value_ptr(mvp));
+		glUniform2f(portal_norm, p.normal.x, p.normal.y);
+		//printf("%f, %f\n", p.normal.x, p.normal.y);
+
+		// Draw portal blocker
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+
+		// Draw portalled things
+		scene->draw(camera, Scene::Object::ProgramTypeDefault, &p);
+	};
+
+	{ // Move everthing from portal 1 to portal 0, then render from portal 0
+		for(Scene::Object * obj : players[1].vicinity) {
+			teleport(obj->transform, 0, false);
+			obj->portal_in = &players[0];
+		}
+
+		draw_portal(players[0]);
+	}
+
+	{ // Move everything to portal 1 now and draw from there, then move to og
+		for(Scene::Object * obj : players[0].vicinity) {
+			teleport(obj->transform, 1, false);
+			obj->portal_in = &players[1];
+		}
+		for(Scene::Object * obj : players[1].vicinity) {
+			teleport(obj->transform, 1, false);
+			obj->portal_in = &players[1];
+		}
+
+		draw_portal(players[1]);
+
+		for(Scene::Object * obj : players[0].vicinity) {
+			teleport(obj->transform, 0, false);
+			obj->portal_in = &players[0];
+		}
+	}
 
 	//draw score
+	glDisable(GL_DEPTH_TEST);
 	std::string message = "SCORE "+std::to_string(scores[level]);
 	float height = 0.1f;
 	float width = text_width(message, height);
@@ -599,7 +719,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_portal_id) {
+void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_portal_id, bool update_speed) {
 	const Portal &from_portal = players[!to_portal_id];
 	const Portal &  to_portal = players[ to_portal_id];
 
@@ -608,8 +728,9 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 		//                    from_portal_normal and    -object_speed (theta)
 		const glm::vec2 &from_normal = from_portal.normal;
 		const glm::vec2 &  to_normal =   to_portal.normal;
-		object_transform->speed *= -1.0f;  // reverse speed
+		//object_transform->speed *= -1.0f;  // reverse speed
 
+		/*
 		auto angle_between = [=] (glm::vec2 from, glm::vec2 to) -> float {
 			from = glm::normalize(from);
 			to = glm::normalize(to);
@@ -618,21 +739,52 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 		};
 		float phi = angle_between(from_normal, to_normal);
 		float theta = angle_between(from_normal, object_transform->speed);
-
+		*/
         // rotate position by phi
+		/*
 		glm::mat4 pos_rotation = glm::rotate(glm::mat4(1.f), phi, glm::vec3(0.0f, 0.0f, 1.0f));
 		auto pos_diff = glm::vec2(object_transform->position) - from_portal.position;
 		auto rotated_pos_diff = glm::vec2(pos_rotation * glm::vec4(pos_diff, 0.0f, 1.0f));
 		object_transform->position = glm::vec3(to_portal.position + rotated_pos_diff, 0.0f);
+		*/
 
-		// rotate speed by phi - 2*theta
-		glm::mat4 speed_rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
-		auto new_speed = glm::vec2(speed_rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
-		// boost if new_speed is too slow
-		float speed_lowerbound = 5.0f;
-		object_transform->speed = (glm::length(new_speed) < speed_lowerbound) ? 
-		                          speed_lowerbound * glm::normalize(object_transform->speed) :
-								  new_speed;
+		// Instead, compute position along normal/parallel
+		vec2 from_par = vec2(-from_normal.y, from_normal.x);
+		vec2 to_par = vec2(-to_normal.y, to_normal.x);
+		vec2 pos_diff = glm::vec2(object_transform->position) - from_portal.position;
+		float norm_diff = glm::dot(pos_diff, from_normal);
+		float par_diff = glm::dot(pos_diff, from_par);
+		// new position along new normal and parallel, in opposite direction
+		vec2 rotated_pos_diff = -norm_diff * to_normal + par_diff * to_par;
+		object_transform->position = glm::vec3(to_portal.position + rotated_pos_diff, 0.0f);
+
+		// Rotate object to opposite new normal
+		float angle = atan2(-from_normal.x * to_normal.y + from_normal.y * to_normal.x, glm::dot(-to_normal, from_normal));
+		object_transform->rotation = angleAxis(angle, vec3(0,0,1)) * object_transform->rotation;
+
+		if (update_speed) {
+			// rotate speed by phi - 2*theta
+			/*
+			glm::mat4 speed_rotation = glm::rotate(glm::mat4(1.f), phi - 2.0f*theta, glm::vec3(0.0f, 0.0f, 1.0f));
+			auto new_speed = glm::vec2(speed_rotation * glm::vec4(object_transform->speed, 0.0f, 1.0f));
+			// boost if new_speed is too slow
+			float speed_lowerbound = 5.0f;
+			object_transform->speed = (glm::length(new_speed) < speed_lowerbound) ? 
+									speed_lowerbound * glm::normalize(object_transform->speed) :
+									new_speed;
+			*/
+
+			// Instead, compute speed along normal/parallel
+			vec2 old_speed = object_transform->speed;
+			float norm_spd = glm::dot(old_speed, from_normal);
+			float par_spd = glm::dot(old_speed, from_par);
+
+			// If too slow along normal, give boost
+			if(norm_spd > -5.f) norm_spd = -5.f;
+			// new speed along new normal and parallel, in opposite direction
+			vec2 new_speed = -norm_spd * to_normal + par_spd * to_par;
+			object_transform->speed = new_speed;
+		}
 	}
 
 	// update bbx

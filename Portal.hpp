@@ -1,9 +1,10 @@
 #pragma once
 
 #include <glm/glm.hpp>
-
 #include "Scene.hpp"
 #include "BoundingBox.hpp"
+
+#include <unordered_set>
 
 struct Portal {
 	Portal();
@@ -18,7 +19,10 @@ struct Portal {
 	Scene::Transform *portal_transform;
 	BoundingBox *boundingbox = nullptr;
 
+	std::unordered_set<Scene::Object *> vicinity;
+
 	void update_boundingbox();  // call this when position or normal is changed
 	bool is_in_portal(const Scene::Transform *object_transform);
+	bool is_in_vicinity(const Scene::Transform *object_transform);
 	bool should_teleport(const Scene::Transform *object_transform);
 };

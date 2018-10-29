@@ -70,6 +70,8 @@ TextureProgram::TextureProgram() {
 		"	}\n"
 
 		"	fragColor = texture(tex, texCoord) * vec4(color.rgb * total_light, color.a);\n"
+
+    	//"	fragColor = vec4(vec3(gl_FragCoord.z), 1.0);\n"
 		"}\n"
 	);
 
