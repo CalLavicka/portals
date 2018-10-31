@@ -192,19 +192,21 @@ Load< GLuint > portal_depth_program(LoadTagDefault, [](){
 		//this draws a triangle that covers the entire screen:
 		"#version 330\n"
 		"uniform vec2 portalNorm;\n"
-		"uniform mat4 mvp;"
+		"uniform mat4 mv;\n"
+		"uniform mat4 cam_scale;\n"
 		"void main() {\n"
 		//"	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, -1.0, 1.0);\n"
 		"	if (gl_VertexID < 4) {\n" // Clipping plane 1 (through portal)
 		"		vec4 pt = vec4(100000 * (2 * (gl_VertexID & 1) - 1), 0.0, 100000 * ((gl_VertexID & 2) - 1), 1.0);\n"
-		"		gl_Position = mvp * pt;\n"
+		"		gl_Position = cam_scale * mv * pt;\n"
 		"	} else {\n"
 		"		int idx = gl_VertexID - 4;\n"
-		"		vec2 pt = vec2(mvp * vec4(0.0, 0.0, 0.0, 1.0)) - portalNorm * 0.1;\n"
-		"   	vec2 par = vec2(-portalNorm.y, portalNorm.x);\n"
+		"		vec2 pt = vec2(mv * vec4(0.0, 0.0, 0.0, 1.0)) - portalNorm * 2.5;\n"
+		"   	vec2 par = vec2(-portalNorm.y, portalNorm.x) * 1000.0;\n"
 		"   	vec2 norm = portalNorm * 1000.0;\n"
-		"   	pt = pt - portalNorm * (idx & 1) + par * ((idx & 2) - 1);\n"
-		"		gl_Position = vec4(pt, -1.0, 1.0);\n"
+		"   	pt = pt - norm * (idx & 1) + par * ((idx & 2) - 1);\n"
+		"		gl_Position = cam_scale * vec4(pt, -1.0, 1.0);\n"
+		"		gl_Position.z = -1.0;\n"
 		"	}\n"
 		"}\n"
 		,
@@ -474,7 +476,7 @@ void GameMode::update(float elapsed) {
 		{  // update vegetbale speed, position, and boundingbox
 			float g = -9.81f;
 			food_transform->speed.y += g * elapsed;
-			food_transform->speed.y = std::max(-15.0f, food_transform->speed.y);  // speed limit on cube
+			food_transform->speed.y = std::max(-30.0f, food_transform->speed.y);  // speed limit on cube
 			food_transform->position.x += food_transform->speed.x * elapsed;
 			food_transform->position.y += food_transform->speed.y * elapsed;
 			food_transform->boundingbox->update_origin(food_transform->position);
@@ -725,19 +727,23 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		static GLuint portal_norm = glGetUniformLocation(*portal_depth_program, "portalNorm");
-		static GLuint mvp_mat4 = glGetUniformLocation(*portal_depth_program, "mvp");
+		static GLuint mv_mat4 = glGetUniformLocation(*portal_depth_program, "mv");
+		static GLuint cam_scale_mat4 = glGetUniformLocation(*portal_depth_program, "cam_scale");
 
-		glm::mat4 mvp = camera->make_projection() * camera->transform->make_world_to_local() * p.portal_transform->make_local_to_world();
+		glm::mat4 mv = p.portal_transform->make_local_to_world();
+
+		glm::mat4 cam_scale = camera->make_projection() * camera->transform->make_world_to_local();
 
 		//glm::vec2 pt = glm::vec2(mvp * glm::vec4(players[0].position, 0, 1));
 
-		glUniformMatrix4fv(mvp_mat4, 1, GL_FALSE, glm::value_ptr(mvp));
+		glUniformMatrix4fv(mv_mat4, 1, GL_FALSE, glm::value_ptr(mv));
+		glUniformMatrix4fv(cam_scale_mat4, 1, GL_FALSE, glm::value_ptr(cam_scale));
 		glUniform2f(portal_norm, p.normal.x, p.normal.y);
 		//printf("%f, %f\n", p.normal.x, p.normal.y);
 
 		// Draw portal blocker
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
