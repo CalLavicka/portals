@@ -26,6 +26,8 @@
 #include <cstddef>
 #include <random>
 
+#define NUM_CLIPPING_VERTS 20
+
 using namespace glm;
 
 Load< MeshBuffer > meshes(LoadTagDefault, [](){
@@ -192,24 +194,25 @@ Load< GLuint > portal_depth_program(LoadTagDefault, [](){
 		"uniform vec2 portalNorm;\n"
 		"uniform mat4 mvp;"
 		"void main() {\n"
-		"	vec2 pt = vec2(mvp * vec4(0.0, 0.0, 0.0, 1.0));\n"
-		"   vec2 par = vec2(-portalNorm.y, portalNorm.x);\n"
-		"   vec2 norm = portalNorm * 1000.0;\n"
-		"   pt = pt - portalNorm * (gl_VertexID & 1) + par * ((gl_VertexID & 2) - 1);\n"
-		"	gl_Position = vec4(pt, -1.0, 1.0);\n"
 		//"	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, -1.0, 1.0);\n"
+		"	if (gl_VertexID < 4) {\n" // Clipping plane 1 (through portal)
+		"		vec4 pt = vec4(100000 * (2 * (gl_VertexID & 1) - 1), 0.0, 100000 * ((gl_VertexID & 2) - 1), 1.0);\n"
+		"		gl_Position = mvp * pt;\n"
+		"	} else {\n"
+		"		int idx = gl_VertexID - 4;\n"
+		"		vec2 pt = vec2(mvp * vec4(0.0, 0.0, 0.0, 1.0)) - portalNorm * 0.1;\n"
+		"   	vec2 par = vec2(-portalNorm.y, portalNorm.x);\n"
+		"   	vec2 norm = portalNorm * 1000.0;\n"
+		"   	pt = pt - portalNorm * (idx & 1) + par * ((idx & 2) - 1);\n"
+		"		gl_Position = vec4(pt, -1.0, 1.0);\n"
+		"	}\n"
 		"}\n"
 		,
-		//NOTE on reading screen texture:
-		//texelFetch() gives direct pixel access with integer coordinates, but accessing out-of-bounds pixel is undefined:
-		//	vec4 color = texelFetch(tex, ivec2(gl_FragCoord.xy), 0);
-		//texture() requires using [0,1] coordinates, but handles out-of-bounds more gracefully (using wrap settings of underlying texture):
-		//	vec4 color = texture(tex, gl_FragCoord.xy / textureSize(tex,0));
 
 		"#version 330\n"
 		"out vec4 fragColor;\n"
 		"void main() {\n"
-		"	fragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"
+		"	fragColor = vec4(0.0, 1.0, 0.0, 0.0);\n"
 		"}\n"
 	);
 
@@ -718,7 +721,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	auto draw_portal = [this](Portal &p) {
 		glUseProgram(*portal_depth_program);
 		glBindVertexArray(*empty_vao);
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		//glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		static GLuint portal_norm = glGetUniformLocation(*portal_depth_program, "portalNorm");
@@ -734,6 +737,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 
 		// Draw portal blocker
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
 
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 

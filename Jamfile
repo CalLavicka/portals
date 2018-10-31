@@ -14,6 +14,7 @@ if $(OS) = NT { #Windows
 		/LIBPATH:"kit-libs-win/out/libpng"
 		/LIBPATH:"kit-libs-win/out/zlib"
 	;
+	MAKEDIR = mkdir ;
 	LINKLIBS = SDL2main.lib SDL2.lib OpenGL32.lib libpng.lib zlib.lib ;
 
 	File dist\\SDL2.dll : kit-libs-win\\out\\dist\\SDL2.dll ;
@@ -33,6 +34,7 @@ if $(OS) = NT { #Windows
 		-L$(KIT_LIBS)/zlib/lib -lz                          #zlib
 		`PATH=$(KIT_LIBS)/SDL2/bin:$PATH sdl2-config --static-libs` -framework OpenGL #SDL2
 		;
+	MAKEDIR = mkdir ;
 } else if $(OS) = LINUX { #Linux
 	KIT_LIBS = kit-libs-linux ;
 	C++ = g++ ;
@@ -49,6 +51,7 @@ if $(OS) = NT { #Windows
 		-L$(KIT_LIBS)/zlib/lib -lz                          #zlib
 		`PATH=$(KIT_LIBS)/SDL2/bin:$PATH sdl2-config --static-libs` -lGL #SDL2
 		;
+	MAKEDIR = mkdir ;
 }
 
 #---- build ----
@@ -86,13 +89,13 @@ CLIENT_NAMES =
 	BasicLevel
 	;
 
-C_NAMES =
-	manymouse/manymouse
-	manymouse/linux_evdev
-	manymouse/macosx_hidutilities
-	manymouse/macosx_hidmanager
-	manymouse/windows_wminput
-	manymouse/x11_xinput2
+MANYMOUSE_NAMES =
+	manymouse
+	linux_evdev
+	macosx_hidutilities
+	macosx_hidmanager
+	windows_wminput
+	x11_xinput2
 	;
 
 if $(OS) = NT {
@@ -100,12 +103,17 @@ if $(OS) = NT {
 	CLIENT_NAMES += gl_shims ;
 }
 
+
 LOCATE_TARGET = objs ; #put objects in 'objs' directory
+
 Objects $(CLIENT_NAMES:S=.cpp) ;
 #Objects $(SERVER_NAMES:S=.cpp) ;
-Objects $(C_NAMES:S=.c) ;
 Objects $(COMMON_NAMES:S=.cpp) ;
 
+SEARCH_SOURCE = manymouse ;
+Objects $(MANYMOUSE_NAMES:S=.c) ;
+
+SEARCH_SOURCE = . ;
 LOCATE_TARGET = dist ; #put main in 'dist' directory
-MainFromObjects main : $(CLIENT_NAMES:S=$(SUFOBJ)) $(COMMON_NAMES:S=$(SUFOBJ)) $(C_NAMES:S=$(SUFOBJ)) ;
+MainFromObjects main : $(CLIENT_NAMES:S=$(SUFOBJ)) $(COMMON_NAMES:S=$(SUFOBJ)) $(MANYMOUSE_NAMES:S=$(SUFOBJ)) ;
 #MainFromObjects server : $(SERVER_NAMES:S=$(SUFOBJ)) $(COMMON_NAMES:S=$(SUFOBJ)) ;
