@@ -33,9 +33,9 @@ Load< GLuint > heat_program(LoadTagDefault, [](){
 		"uniform mat4 cam_scale;\n"
 		"void main() {\n"
 		"	if (gl_VertexID < 4) {\n"
-		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), 100 * (gl_VertexID & 2) + top, -1.0, 1.0);\n"
+		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), 100 * (gl_VertexID & 2) + top, 0.5, 1.0);\n"
 		"	} else if(gl_VertexID>=4){\n"
-		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), -100 * (gl_VertexID & 2) + bottom, -1.0, 1.0);\n"
+		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), -100 * (gl_VertexID & 2) + bottom, 0.5, 1.0);\n"
 		"	}\n"
 		"}\n"
 		,
@@ -43,7 +43,7 @@ Load< GLuint > heat_program(LoadTagDefault, [](){
 		"#version 330\n"
 		"out vec4 fragColor;\n"
 		"void main() {\n"
-		"	fragColor = vec4(1.0, 0.1, 0.1, 0.2);\n"
+		"	fragColor = vec4(1.0, 0.0, 0.0, 0.2);\n"
 		"}\n"
 	);
 
@@ -69,7 +69,7 @@ Load< GLuint > meat2_tex(LoadTagDefault, [](){
         GLuint tex = 0;
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
-        glm::u8vec4 meat(0x20, 0x20, 0x20, 0xff);
+        glm::u8vec4 meat(0x40, 0x40, 0x40, 0xff);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -84,7 +84,7 @@ Load< GLuint > meat3_tex(LoadTagDefault, [](){
         GLuint tex = 0;
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
-        glm::u8vec4 meat(0x05, 0x03, 0x03, 0xff);
+        glm::u8vec4 meat(0x25, 0x23, 0x23, 0xff);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -99,7 +99,7 @@ Load< GLuint > meat4_tex(LoadTagDefault, [](){
         GLuint tex = 0;
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
-        glm::u8vec4 meat(0x01, 0x00, 0x00, 0xff);
+        glm::u8vec4 meat(0x11, 0x05, 0x05, 0xff);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -134,25 +134,43 @@ OvenLevel::OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_pro
         //printf("HELLO: %d\n", mesh.start);
 	}
 
+    { // Add oven
+		Scene::Object * oven = gm->scene->new_object(gm->scene->new_transform());
+		oven->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+
+		oven->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
+
+		MeshBuffer::Mesh const &mesh = steak_meshes->lookup("oven");
+		oven->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
+		oven->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+	    oven->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0.f,0.f,1.f))
+                                        * glm::angleAxis(glm::radians(-90.f), glm::vec3(0.f,1.f,0.f));
+        oven->transform->scale = vec3(2,9,8);
+        oven->transform->position = vec3(0,7,0);
+    }
+
 }
 
 void OvenLevel::update(float elapsed) {
     // calculate heat
     //printf("%f %f\n", steak->transform->position.x, steak->transform->position.y);
     if(heat > 10.0f){
-        if(heat>90.0f){
+        if(heat>80.0f){
             steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
                 *meat4_tex;
-        }else if(heat>70.0f){
+        }else if(heat>60.0f){
             steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
                 *meat3_tex;
-        }else if(heat>50.0f){
+        }else if(heat>40.0f){
             steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
                 *meat2_tex;
         }else{
             steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
                 *meat1_tex;
         }
+    }else {
+        steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+                *white_tex;
     }
 
 
