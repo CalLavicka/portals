@@ -88,6 +88,7 @@ CLIENT_NAMES =
 	BoundingBox
 	BasicLevel
 	OvenLevel
+	MenuLevel
 	;
 
 MANYMOUSE_NAMES =

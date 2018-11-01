@@ -47,8 +47,8 @@ struct GameMode : public Mode {
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
 	float sensitivities[2] = {70.f,70.f};
-    std::vector <uint32_t> scores = {50};
-    uint32_t level = 0;
+    std::vector <uint32_t> scores = {50, 0};
+    uint32_t level = 10;
 	Scene::Camera * camera = nullptr;
 
 	Level *current_level = nullptr;
@@ -62,8 +62,9 @@ struct GameMode : public Mode {
     void show_pause_menu();
     void show_lose();
     void show_win();
+    void show_level_select();
 
-    Scene *scene;
+    Scene *scene = nullptr;
 };
 
 extern Load< MeshBuffer > vegetable_meshes;

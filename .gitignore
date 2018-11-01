@@ -10,6 +10,7 @@ dist/SDL2.dll
 kit-libs-win
 kit-libs-osx
 kit-libs-linux
+saves/
 
 # Yen's to-ignore list
 run_exports

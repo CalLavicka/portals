@@ -17,6 +17,7 @@
 
 #include "BasicLevel.hpp"
 #include "OvenLevel.hpp"
+#include "MenuLevel.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
@@ -280,6 +281,12 @@ void GameMode::load_scene() {
 		random_gen = rnd;
 	}
 
+	if (scene != nullptr) {
+		delete scene;
+		foods.clear();
+		pots.clear();
+	}
+
 	Scene *ret = new Scene;
 
 	//pre-build some program info (material) blocks to assign to each object:
@@ -343,15 +350,28 @@ void GameMode::load_scene() {
 
 
 	scene = ret;
-
-	current_level = new OvenLevel(this, texture_program_info, depth_program_info);
-}
-
-GameMode::GameMode() {
-	load_scene();
+	
+	switch(level) {
+	case 0:
+		current_level = new BasicLevel(this, texture_program_info, depth_program_info);
+		scores[0] = 50;
+		break;
+	case 1:
+		current_level = new OvenLevel(this, texture_program_info, depth_program_info);
+		scores[1] = 0;
+		break;
+	default:
+		current_level = new MenuLevel(this, texture_program_info, depth_program_info);
+		show_level_select();
+		break;
+	}
 
 	players[0].portal_transform = p0_trans;
 	players[1].portal_transform = p1_trans;
+}
+
+GameMode::GameMode() {
+	//load_scene();
 
 	//SDL_SetRelativeMouseMode(SDL_TRUE);
 }
@@ -471,7 +491,7 @@ void GameMode::update(float elapsed) {
 		{  // update vegetbale speed, position, and boundingbox
 			float g = -9.81f;
 			food_transform->speed.y += g * elapsed;
-			food_transform->speed.y = std::max(-30.0f, food_transform->speed.y);  // speed limit on cube
+			food_transform->speed.y = std::max(-20.0f, food_transform->speed.y);  // speed limit on cube
 			food_transform->position.x += food_transform->speed.x * elapsed;
 			food_transform->position.y += food_transform->speed.y * elapsed;
 			food_transform->boundingbox->update_origin(food_transform->position);
@@ -779,14 +799,18 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	current_level->render_pass();
 
 	//draw score
-	glDisable(GL_DEPTH_TEST);
-	std::string message = "SCORE "+std::to_string(scores[level]);
-	float height = 0.1f;
-	float width = text_width(message, height);
-	draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
-			glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	if (level < 2) {
+		glDisable(GL_DEPTH_TEST);
+		std::string message = "SCORE "+std::to_string(scores[level]);
+		float height = 0.1f;
+		float width = text_width(message, height);
+		draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
+				glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-	glEnable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	GL_ERRORS();
@@ -942,8 +966,6 @@ void GameMode::show_lose() {
 }
 
 void GameMode::show_win() {
-	level++;
-	scores.emplace_back(50);
 
 	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
@@ -951,7 +973,32 @@ void GameMode::show_win() {
 	menu->background = game;
 
 	menu->choices.emplace_back("LEVEL PASSED");
-	menu->choices.emplace_back("CONTINUE", [game](){
+	menu->choices.emplace_back("CONTINUE", [this, game](){
+				level++;
+				this->load_scene();
+				Mode::set_current(game);
+			});
+
+	menu->selected = 1;
+
+	Mode::set_current(menu);
+}
+
+void GameMode::show_level_select() {
+	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
+
+	std::shared_ptr< Mode > game = shared_from_this();
+	menu->background = game;
+
+	menu->choices.emplace_back("SELECT LEVEL");
+	menu->choices.emplace_back("VEGETABLES", [this, game](){
+				level = 0;
+				this->load_scene();
+				Mode::set_current(game);
+			});
+	menu->choices.emplace_back("OVEN", [this, game](){
+				level = 1;
+				this->load_scene();
 				Mode::set_current(game);
 			});
 
