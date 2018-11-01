@@ -267,11 +267,6 @@ Load< GLuint > white_tex(LoadTagDefault, [](){
 });
 
 
-Scene::Transform *camera_parent_transform = nullptr;
-Scene::Camera *camera = nullptr;
-Scene::Transform *spot_parent_transform = nullptr;
-Scene::Lamp *spot = nullptr;
-Scene::Transform *cube_transform = nullptr;
 
 Scene::Transform *p0_trans = nullptr;
 Scene::Transform *p1_trans = nullptr;
@@ -337,14 +332,14 @@ void GameMode::load_scene() {
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
 	}
 
-	camera_parent_transform = ret->new_transform();
-	camera = ret->new_camera(camera_parent_transform);
+	Scene::Transform *cam_trans = ret->new_transform();
+	camera = ret->new_camera(cam_trans);
 	camera->is_perspective = false;
 	camera->ortho_scale = 50.f;
 	camera->near = 1.f;
 
-	camera_parent_transform->position = glm::vec3(0,0,25);
-	camera_parent_transform->rotation = glm::angleAxis(glm::radians(0.f), glm::vec3(1.0f, 0.0f, 0.0f));
+	cam_trans->position = glm::vec3(0,0,25);
+	cam_trans->rotation = glm::angleAxis(glm::radians(0.f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 
 	scene = ret;
@@ -791,6 +786,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
 			glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
+	glEnable(GL_DEPTH_TEST);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	GL_ERRORS();

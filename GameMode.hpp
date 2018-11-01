@@ -49,6 +49,7 @@ struct GameMode : public Mode {
 	float sensitivities[2] = {70.f,70.f};
     std::vector <uint32_t> scores = {50};
     uint32_t level = 0;
+	Scene::Camera * camera = nullptr;
 
 	Level *current_level = nullptr;
 
@@ -72,3 +73,5 @@ extern Load< GLuint > vegetable_meshes_for_texture_program;
 extern Load< GLuint > vegetable_meshes_for_depth_program;
 
 extern Load< GLuint > white_tex;
+
+extern Load< GLuint > empty_vao;
