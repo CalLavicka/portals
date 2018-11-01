@@ -1,4 +1,5 @@
 #include "BasicLevel.hpp"
+#include "BoundingBox.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

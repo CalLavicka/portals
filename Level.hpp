@@ -11,4 +11,5 @@ public:
 	virtual void update(float elapsed) {}
 	virtual bool collision(Scene::Object *o1, Scene::Object *o2) { return false; }
 	virtual void fall_off(Scene::Object *o) {}
+	virtual void render_pass() {}
 };

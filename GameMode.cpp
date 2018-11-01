@@ -16,6 +16,7 @@
 #include "depth_program.hpp"
 
 #include "BasicLevel.hpp"
+#include "OvenLevel.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
@@ -293,6 +294,7 @@ void GameMode::load_scene() {
 	texture_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
 	texture_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
 	texture_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
+	texture_program_info.textures[0] = *white_tex;
 
 	Scene::Object::ProgramInfo depth_program_info;
 	depth_program_info.program = depth_program->program;
@@ -310,7 +312,6 @@ void GameMode::load_scene() {
 	{ // Portal 1
 		Scene::Object *obj = ret->new_object(p0_trans);
 		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-		obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
 
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
@@ -325,7 +326,6 @@ void GameMode::load_scene() {
 	{ // Portal 2
 		Scene::Object *obj = ret->new_object(p1_trans);
 		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-		obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
 
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
@@ -349,7 +349,7 @@ void GameMode::load_scene() {
 
 	scene = ret;
 
-	current_level = new BasicLevel(this, texture_program_info, depth_program_info);
+	current_level = new OvenLevel(this, texture_program_info, depth_program_info);
 }
 
 GameMode::GameMode() {
@@ -778,6 +778,10 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 			obj->portal_in = &players[0];
 		}
 	}
+
+	// extra rendering from level?
+	glUseProgram(texture_program->program);
+	current_level->render_pass();
 
 	//draw score
 	glDisable(GL_DEPTH_TEST);

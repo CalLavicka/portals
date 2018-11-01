@@ -87,6 +87,7 @@ CLIENT_NAMES =
 	Portal
 	BoundingBox
 	BasicLevel
+	OvenLevel
 	;
 
 MANYMOUSE_NAMES =
