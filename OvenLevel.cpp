@@ -50,11 +50,13 @@ Load< GLuint > heat_program(LoadTagDefault, [](){
 	return new GLuint(program);
 });
 
+
+
 OvenLevel::OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info_,
-                            Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm), 
+                            Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm),
                             texture_program_info(texture_program_info_), depth_program_info(depth_program_info_) {
     texture_program_info.vao = *steak_meshes_for_texture_program;
-    
+
     { // Add steak
 		steak = gm->scene->new_object(gm->scene->new_transform());
 		steak->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
@@ -73,7 +75,7 @@ OvenLevel::OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_pro
 
         //printf("HELLO: %d\n", mesh.start);
 	}
-	
+
 }
 
 void OvenLevel::update(float elapsed) {
@@ -128,7 +130,7 @@ void OvenLevel::render_pass() {
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
-    
+
     GL_ERRORS();
 
 }
