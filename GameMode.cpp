@@ -140,27 +140,6 @@ Load< GLuint > bloom_program(LoadTagDefault, [](){
 
         return new GLuint(program);
 });
-Load< GLuint > cooking_program(LoadTagDefault, [](){
-	GLuint program = compile_program(
-		//this draws a triangle that covers the entire screen:
-		"#version 330\n"
-		"void main() {\n"
-		"	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
-		"}\n"
-        ,
-
-		"#version 330\n"
-        "uniform sampler2D tex;\n"
-        "uniform float score;\n"
-		"out vec4 fragColor;\n"
-		"void main() {\n"
-        "   vec4 center = texture(tex, gl_FragCoord.xy/textureSize(tex, 0));\n"
-		"	fragColor = vec4(center.rgb*score, 1.0);\n"
-		"}\n"
-	);
-
-	return new GLuint(program);
-});
 
 
 Load< GLuint > blur_program(LoadTagDefault, [](){
@@ -840,12 +819,8 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	//Copy scene from color buffer to screen, performing post-processing effects:
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, fbs.color_tex);
-    glUseProgram(*cooking_program);
-    //glUseProgram(*bloom_program);
+    glUseProgram(*bloom_program);
 	glBindVertexArray(*empty_vao);
-
-    static GLuint score = glGetUniformLocation(*cooking_program, "score");
-    glUniform1i(score, scores[level]);
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 

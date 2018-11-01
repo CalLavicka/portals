@@ -34,7 +34,7 @@ Load< GLuint > heat_program(LoadTagDefault, [](){
 		"void main() {\n"
 		"	if (gl_VertexID < 4) {\n"
 		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), 100 * (gl_VertexID & 2) + top, -1.0, 1.0);\n"
-		"	} else {\n"
+		"	} else if(gl_VertexID>=4){\n"
 		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), -100 * (gl_VertexID & 2) + bottom, -1.0, 1.0);\n"
 		"	}\n"
 		"}\n"
@@ -50,7 +50,65 @@ Load< GLuint > heat_program(LoadTagDefault, [](){
 	return new GLuint(program);
 });
 
+Load< GLuint > meat1_tex(LoadTagDefault, [](){
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glm::u8vec4 meat(0xa0, 0xa0, 0xa0, 0xff);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
+        return new GLuint(tex);
+        });
+
+Load< GLuint > meat2_tex(LoadTagDefault, [](){
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glm::u8vec4 meat(0x20, 0x20, 0x20, 0xff);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return new GLuint(tex);
+        });
+
+Load< GLuint > meat3_tex(LoadTagDefault, [](){
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glm::u8vec4 meat(0x05, 0x03, 0x03, 0xff);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return new GLuint(tex);
+        });
+
+Load< GLuint > meat4_tex(LoadTagDefault, [](){
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glm::u8vec4 meat(0x01, 0x00, 0x00, 0xff);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, glm::value_ptr(meat));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return new GLuint(tex);
+        });
 
 OvenLevel::OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info_,
                             Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm),
@@ -81,6 +139,22 @@ OvenLevel::OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_pro
 void OvenLevel::update(float elapsed) {
     // calculate heat
     //printf("%f %f\n", steak->transform->position.x, steak->transform->position.y);
+    if(heat > 10.0f){
+        if(heat>90.0f){
+            steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+                *meat4_tex;
+        }else if(heat>70.0f){
+            steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+                *meat3_tex;
+        }else if(heat>50.0f){
+            steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+                *meat2_tex;
+        }else{
+            steak->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+                *meat1_tex;
+        }
+    }
+
 
     if (steak->transform->position.y > top || steak->transform->position.y < bottom) {
         heat += 40.f * elapsed;
