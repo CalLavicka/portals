@@ -18,6 +18,7 @@
 #include "BasicLevel.hpp"
 #include "OvenLevel.hpp"
 #include "MenuLevel.hpp"
+#include "GarnishLevel.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
@@ -361,6 +362,10 @@ void GameMode::load_scene() {
 		current_level = new OvenLevel(this, texture_program_info, depth_program_info);
 		scores[1] = 0;
 		break;
+    case 2:
+        current_level = new GarnishLevel(this, texture_program_info, depth_program_info);
+        scores[2] = 0;
+        break;
 	default:
 		current_level = new MenuLevel(this, texture_program_info, depth_program_info);
 		show_level_select();
@@ -406,11 +411,12 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 	if (event.device >= 2) {
 		return false;
 	}
+    int device = event.device;
 
 	// printf("TYPE: %d, VALUE: %d, ITEM: %d, DEVICE: %d\n", event.type, event.value, event.item, event.device);
-	Portal &portal = players[event.device];
-	float &rot_speed = rot_speeds[event.device];
-	float sensitivity = sensitivities[event.device];
+	Portal &portal = players[device];
+	float &rot_speed = rot_speeds[device];
+	float sensitivity = sensitivities[device];
 	if (event.type == MANYMOUSE_EVENT_RELMOTION) {
 		if (event.item == 0) {
 			portal.move(glm::vec2(sensitivity * event.value / window_size.x, 0));
@@ -1000,7 +1006,11 @@ void GameMode::show_level_select() {
 				this->load_scene();
 				Mode::set_current(game);
 			});
-
+    menu->choices.emplace_back("GARNISH", [this, game](){
+                level = 2;
+                this->load_scene();
+                Mode::set_current(game);
+            });
 	menu->selected = 1;
 
 	Mode::set_current(menu);

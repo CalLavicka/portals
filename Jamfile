@@ -85,9 +85,11 @@ CLIENT_NAMES =
 	draw_text
 	Sound
 	Portal
+    Particle
 	BoundingBox
 	BasicLevel
 	OvenLevel
+    GarnishLevel
 	MenuLevel
 	;
 

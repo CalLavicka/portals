@@ -122,12 +122,12 @@ static int poll_mouse(MouseStruct *mouse, ManyMouseEvent *outevent)
             else if ((event.code >= BTN_MISC) && (event.code <= BTN_LEFT))
                 outevent->item = (event.code - BTN_MISC);
 
-            else if (event.code == BTN_TOUCH) /* tablet... */
-                outevent->item = 0;
-            else if (event.code == BTN_STYLUS) /* tablet... */
-                outevent->item = 1;
-            else if (event.code == BTN_STYLUS2) /* tablet... */
-                outevent->item = 2;
+            //else if (event.code == BTN_TOUCH) /* tablet... */
+                //outevent->item = 0;
+           // else if (event.code == BTN_STYLUS) /* tablet... */
+                //outevent->item = 1;
+            //else if (event.code == BTN_STYLUS2) /* tablet... */
+                //outevent->item = 2;
 
             else
             {
