@@ -435,7 +435,6 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
-
 	current_level->update(elapsed);
 
 	players[0].rotate(elapsed * rot_speeds[0]);
@@ -492,7 +491,7 @@ void GameMode::update(float elapsed) {
 		{  // update vegetbale speed, position, and boundingbox
 			float g = -9.81f;
 			food_transform->speed.y += g * elapsed;
-			food_transform->speed.y = std::max(-20.0f, food_transform->speed.y);  // speed limit on cube
+			food_transform->speed.y = std::max(-200.0f, food_transform->speed.y);  // speed limit on cube
 			food_transform->position.x += food_transform->speed.x * elapsed;
 			food_transform->position.y += food_transform->speed.y * elapsed;
 			food_transform->boundingbox->update_origin(food_transform->position);
@@ -991,11 +990,15 @@ void GameMode::show_level_select() {
 
 	menu->choices.emplace_back("SELECT LEVEL");
 	menu->choices.emplace_back("VEGETABLES", [this, game](){
+
+				SDL_SetRelativeMouseMode(SDL_TRUE);
 				level = 0;
 				this->load_scene();
 				Mode::set_current(game);
 			});
 	menu->choices.emplace_back("OVEN", [this, game](){
+
+				SDL_SetRelativeMouseMode(SDL_TRUE);
 				level = 1;
 				this->load_scene();
 				Mode::set_current(game);
