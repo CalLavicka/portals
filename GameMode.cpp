@@ -288,7 +288,7 @@ void GameMode::load_scene() {
 		pots.clear();
 	}
 
-	Scene *ret = new Scene;
+	Scene *ret = new Scene();
 
 	//pre-build some program info (material) blocks to assign to each object:
 	Scene::Object::ProgramInfo texture_program_info;
@@ -435,56 +435,57 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
+
+	{ // Update portals
+		players[0].update(elapsed);
+		players[1].update(elapsed);
+	}
+
 	current_level->update(elapsed);
 
 	players[0].rotate(elapsed * rot_speeds[0]);
 	players[1].rotate(elapsed * rot_speeds[1]);
 
+	auto update_vicinity = [](Scene::Object *obj, Portal &p, Portal &op) {
+		if (obj->portal_in == &op) {
+			obj->portal_in->vicinity.erase(obj);
+		}
+		obj->portal_in = &p;
+		p.vicinity.insert(obj);
+	};
+
 	for(auto iter = foods.begin(); iter != foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;
 
-		{  // teleport
+		{  // teleport / see if in a portal
 			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
 							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
-			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
-				players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
-
-				teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
-			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
-				players[1].should_teleport(food_transform)) {
-
-				teleport(food_transform, 0);
+			bool updated = false;
+			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold) {
+				if (players[0].should_teleport(*iter)) {
+					teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
+					update_vicinity(*iter, players[1], players[0]);
+					updated = true;
+				} else if (players[0].is_in_vicinity(food_transform)) {
+					update_vicinity(*iter, players[0], players[1]);
+					updated = true;
+				}
+			} 
+			if (!updated && glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
+				if (players[1].should_teleport(*iter)) {
+					teleport(food_transform, 0);  // GameMode::teleport(object, destination_portal)
+					update_vicinity(*iter, players[0], players[1]);
+					updated = true;
+				} else if (players[1].is_in_vicinity(food_transform)) {
+					update_vicinity(*iter, players[1], players[0]);
+					updated = true;
+				}
 			}
-		}
-
-		{ // See if in a portal
-			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
-							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
-			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
-				players[0].is_in_vicinity(food_transform)) {  // Portal::should_teleport(object_transform)
-
-				if((*iter)->portal_in == &players[1]) {
-					(*iter)->portal_in->vicinity.erase(*iter);
-				}
-				(*iter)->portal_in = &players[0];
-				players[0].vicinity.insert(*iter);
-				//printf("IN P0 vicinity\n");
-			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
-				players[1].is_in_vicinity(food_transform)) {
-
-
-				if((*iter)->portal_in == &players[0]) {
-					(*iter)->portal_in->vicinity.erase(*iter);
-				}
-
-				(*iter)->portal_in = &players[1];
-				players[1].vicinity.insert(*iter);
-				//printf("IN P1 vicinity\n");
-			} else {
+			if (!updated) {
 				if((*iter)->portal_in != nullptr) {
 					(*iter)->portal_in->vicinity.erase(*iter);
+					(*iter)->portal_in = nullptr;
 				}
-				(*iter)->portal_in = nullptr;
 			}
 		}
 
@@ -617,94 +618,6 @@ struct Framebuffers {
 void GameMode::draw(glm::uvec2 const &drawable_size) {
 	fbs.allocate(drawable_size, glm::uvec2(512, 512));
 	camera->aspect = drawable_size.x / float(drawable_size.y);
-/*
-	//Draw scene to shadow map for spotlight:
-	glBindFramebuffer(GL_FRAMEBUFFER, fbs.shadow_fb);
-	glViewport(0,0,fbs.shadow_size.x, fbs.shadow_size.y);
-
-	glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-
-	//render only back faces to shadow map (prevent shadow speckles on fronts of objects):
-	glCullFace(GL_FRONT);
-	glEnable(GL_CULL_FACE);
-
-	scene->draw(spot, Scene::Object::ProgramTypeShadow);
-
-	glDisable(GL_CULL_FACE);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	GL_ERRORS();
-*/
-
-/*
-	//Draw scene to off-screen framebuffer:
-	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
-	glViewport(0,0,drawable_size.x, drawable_size.y);
-
-
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//set up basic OpenGL state:
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendEquation(GL_FUNC_ADD);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	//set up light positions:
-	glUseProgram(texture_program->program);
-
-	//don't use distant directional light at all (color == 0):
-	glUniform3fv(texture_program->sun_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
-	glUniform3fv(texture_program->sun_direction_vec3, 1, glm::value_ptr(glm::normalize(glm::vec3(0.0f, 0.0f,-1.0f))));
-	//use hemisphere light for subtle ambient light:
-	glUniform3fv(texture_program->sky_color_vec3, 1, glm::value_ptr(glm::vec3(0.2f, 0.2f, 0.3f)));
-	glUniform3fv(texture_program->sky_direction_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
-
-	glm::mat4 world_to_spot =
-		//This matrix converts from the spotlight's clip space ([-1,1]^3) into depth map texture coordinates ([0,1]^2) and depth map Z values ([0,1]):
-		glm::mat4(
-			0.5f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.5f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.5f, 0.5f, 0.5f+0.00001f, 1.0f
-		)
-		//this is the world-to-clip matrix used when rendering the shadow map:
-		* spot->make_projection() * spot->transform->make_world_to_local();
-
-	glUniformMatrix4fv(texture_program->light_to_spot_mat4, 1, GL_FALSE, glm::value_ptr(world_to_spot));
-
-	glm::mat4 spot_to_world = spot->transform->make_local_to_world();
-	glUniform3fv(texture_program->spot_position_vec3, 1, glm::value_ptr(glm::vec3(spot_to_world[3])));
-	glUniform3fv(texture_program->spot_direction_vec3, 1, glm::value_ptr(-glm::vec3(spot_to_world[2])));
-	glUniform3fv(texture_program->spot_color_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 1.0f)));
-
-	glm::vec2 spot_outer_inner = glm::vec2(std::cos(0.5f * spot->fov), std::cos(0.85f * 0.5f * spot->fov));
-	glUniform2fv(texture_program->spot_outer_inner_vec2, 1, glm::value_ptr(spot_outer_inner));
-
-	//This code binds texture index 1 to the shadow map:
-	// (note that this is a bit brittle -- it depends on none of the objects in the scene having a texture of index 1 set in their material data; otherwise scene::draw would unbind this texture):
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, fbs.shadow_depth_tex);
-	//The shadow_depth_tex must have these parameters set to be used as a sampler2DShadow in the shader:
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
-	//NOTE: however, these are parameters of the texture object, not the binding point, so there is no need to set them *each frame*. I'm doing it here so that you are likely to see that they are being set.
-	glActiveTexture(GL_TEXTURE0);
-
-	scene->draw(camera);
-
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	GL_ERRORS();*/
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
 	glViewport(0,0,drawable_size.x, drawable_size.y);
@@ -884,7 +797,7 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 			*/
 
 			// Instead, compute speed along normal/parallel
-			vec2 old_speed = object_transform->speed;
+			vec2 old_speed = object_transform->speed - from_portal.speed;
 			float norm_spd = glm::dot(old_speed, from_normal);
 			float par_spd = glm::dot(old_speed, from_par);
 
@@ -892,7 +805,7 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 			if(norm_spd > -5.f) norm_spd = -5.f;
 			// new speed along new normal and parallel, in opposite direction
 			vec2 new_speed = -norm_spd * to_normal + par_spd * to_par;
-			object_transform->speed = new_speed;
+			object_transform->speed = new_speed + to_portal.speed;
 		}
 	}
 

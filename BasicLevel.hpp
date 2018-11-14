@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Level.hpp"
+#include "Portal.hpp"
 
 struct BasicLevel : public Level {
     BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
