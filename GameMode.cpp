@@ -777,7 +777,7 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 		float norm_diff = glm::dot(pos_diff, from_normal);
 		float par_diff = glm::dot(pos_diff, from_par);
 		// new position along new normal and parallel, in opposite direction
-		vec2 rotated_pos_diff = -norm_diff * to_normal + par_diff * to_par;
+		vec2 rotated_pos_diff = -norm_diff * to_normal - par_diff * to_par;
 		object_transform->position = glm::vec3(to_portal.position + rotated_pos_diff, 0.0f);
 
 		// Rotate object to opposite new normal
@@ -798,13 +798,13 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 
 			// Instead, compute speed along normal/parallel
 			vec2 old_speed = object_transform->speed - from_portal.speed;
-			float norm_spd = glm::dot(old_speed, from_normal);
-			float par_spd = glm::dot(old_speed, from_par);
+			float norm_spd = glm::dot(old_speed, from_normal);// - glm::dot(from_portal.speed, from_normal);
+			float par_spd = glm::dot(old_speed, from_par);// - glm::dot(from_portal.speed, from_par);
 
 			// If too slow along normal, give boost
 			if(norm_spd > -5.f) norm_spd = -5.f;
 			// new speed along new normal and parallel, in opposite direction
-			vec2 new_speed = -norm_spd * to_normal + par_spd * to_par;
+			vec2 new_speed = -norm_spd * to_normal - par_spd * to_par;
 			object_transform->speed = new_speed + to_portal.speed;
 		}
 	}
