@@ -13,5 +13,5 @@ struct Particle {
     std::string spice;
     float lifespan;
 
-    void update(float);
+    void update(float elapsed);
 };

@@ -252,7 +252,10 @@ void Scene::draw(glm::mat4 const &world_to_clip, Object::ProgramType program_typ
 		glBindVertexArray(info.vao);
 
 		//draw the object:
-		glDrawArrays(GL_TRIANGLES, info.start, info.count);
+        glDrawArrays(GL_TRIANGLES, info.start, info.count);
+        glFlush();
+        glFinish();
+
 	}
 
 	//unbind any still bound textures and go back to active texture unit zero:

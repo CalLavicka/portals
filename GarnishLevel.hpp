@@ -13,6 +13,8 @@ struct GarnishLevel : public Level {
 
     float score = 0.f;
     float time = 120.f;
+    glm::vec3 pos = glm::vec3(50.0f, 0.0f, 0.0f);
 
+    void spawn(std::string spice_name);
 	virtual void update(float elapsed) override;
 };

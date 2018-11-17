@@ -740,7 +740,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glActiveTexture(GL_TEXTURE0);
 	// Draw non-portalled things
 	scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
-
+/*
 	auto draw_portal = [this](Portal &p) {
 		glUseProgram(*portal_depth_program);
 		glBindVertexArray(*empty_vao);
@@ -799,11 +799,11 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 			obj->portal_in = &players[0];
 		}
 	}
-
+*/
 	// extra rendering from level?
-	glUseProgram(texture_program->program);
-	current_level->render_pass();
-
+//	glUseProgram(texture_program->program);
+//	current_level->render_pass();
+/*
 	//draw score
 	if (level < 2) {
 		glDisable(GL_DEPTH_TEST);
@@ -815,7 +815,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 
 		glEnable(GL_DEPTH_TEST);
 	}
-
+*/
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -833,6 +833,9 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glUseProgram(0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+    glFlush();
+    glFinish();
 }
 
 void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_portal_id, bool update_speed) {
