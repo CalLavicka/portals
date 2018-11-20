@@ -16,6 +16,7 @@
 #include "depth_program.hpp"
 
 #include "BasicLevel.hpp"
+#include "GarnishLevel.hpp"
 #include "OvenLevel.hpp"
 #include "MenuLevel.hpp"
 
@@ -361,6 +362,11 @@ void GameMode::load_scene() {
 		current_level = new OvenLevel(this, texture_program_info, depth_program_info);
 		scores[1] = 0;
 		break;
+    case 2:
+        current_level = new GarnishLevel(this, texture_program_info,
+                                        depth_program_info);
+        scores[2] = 0;
+        break;
 	default:
 		current_level = new MenuLevel(this, texture_program_info, depth_program_info);
 		show_level_select();
@@ -1000,6 +1006,13 @@ void GameMode::show_level_select() {
 
 				SDL_SetRelativeMouseMode(SDL_TRUE);
 				level = 1;
+				this->load_scene();
+				Mode::set_current(game);
+			});
+    menu->choices.emplace_back("SPICEY", [this, game](){
+
+				SDL_SetRelativeMouseMode(SDL_TRUE);
+				level = 2;
 				this->load_scene();
 				Mode::set_current(game);
 			});

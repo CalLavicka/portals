@@ -110,9 +110,11 @@ Load< GLuint > meat4_tex(LoadTagDefault, [](){
         return new GLuint(tex);
         });
 
-OvenLevel::OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info_,
-                            Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm),
-                            texture_program_info(texture_program_info_), depth_program_info(depth_program_info_) {
+OvenLevel::OvenLevel(GameMode *gm,
+                    Scene::Object::ProgramInfo const &texture_program_info_,
+                    Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm),
+                    texture_program_info(texture_program_info_),
+                    depth_program_info(depth_program_info_) {
     texture_program_info.vao = *steak_meshes_for_texture_program;
 
     { // Add steak
