@@ -496,6 +496,21 @@ void GameMode::update(float elapsed) {
 			food_transform->position.x += food_transform->speed.x * elapsed;
 			food_transform->position.y += food_transform->speed.y * elapsed;
 			food_transform->boundingbox->update_origin(food_transform->position);
+
+			if (food_transform->position.y >= 50.f && food_transform->speed.y > 0.f) {
+				if (food_transform->speed.x > 0.f) {
+					food_transform->speed.x = glm::max(food_transform->speed.x - food_transform->speed.y, 0.f);
+				}else {
+					food_transform->speed.x = glm::min(food_transform->speed.x + food_transform->speed.y, 0.f);
+				}
+				food_transform->speed.y = 0.f;
+			}
+
+			if (food_transform->position.x >= 70.f && food_transform->speed.x > 0.f) {
+				food_transform->speed.x = -food_transform->speed.x / 2.f;
+			} else if (food_transform->position.x <= -70.f && food_transform->speed.x < 0.f) {
+				food_transform->speed.x = -food_transform->speed.x / 2.f;
+			}
 		}
 
 
