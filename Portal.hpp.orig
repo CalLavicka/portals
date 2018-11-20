@@ -27,7 +27,11 @@ struct Portal {
 	void update_boundingbox();  // call this when position or normal is changed
 	bool is_in_portal(const Scene::Object *obj);
 	bool is_in_vicinity(const Scene::Transform *object_transform);
+<<<<<<< HEAD
 	bool should_teleport(const Scene::Object *obj);
 
+=======
     bool should_bounce(const Scene::Transform *object_transform);
+	bool should_teleport(const Scene::Transform *object_transform);
+>>>>>>> 042a981136bdbdfc74c7168519479b4047190611
 };

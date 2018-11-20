@@ -463,6 +463,7 @@ void GameMode::update(float elapsed) {
 	for(auto iter = foods.begin(); iter != foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;
 
+<<<<<<< HEAD
 		{  // teleport / see if in a portal
 			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
 							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
@@ -475,9 +476,38 @@ void GameMode::update(float elapsed) {
 				} else if (players[0].is_in_vicinity(food_transform)) {
 					update_vicinity(*iter, players[0], players[1]);
 					updated = true;
-                } else if (players[0].should_bounce(food_transform)) {
-                    food_transform->speed *= -1.f;
-                }
+=======
+		{  // teleport
+			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
+							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
+			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
+				players[0].should_teleport(food_transform)) {  // Portal::should_teleport(object_transform)
+
+				teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
+			} else if (glm::distance(players[1].portal_transform->position, food_transform->position) < threshold &&
+				players[1].should_teleport(food_transform)) {
+
+				teleport(food_transform, 0);
+			}
+		}
+
+        { // See if in a portal
+			float threshold = std::max(players[0].boundingbox->width,
+                    players[0].boundingbox->thickness)
+                + std::max(food_transform->boundingbox->width,
+                        food_transform->boundingbox->thickness);
+            float dist = glm::distance(players[0].portal_transform->position,
+                        food_transform->position);
+            if (dist<threshold && players[0].should_bounce(food_transform)) {
+                food_transform->speed *=-1.f;
+            }
+			if (dist<threshold && players[0].is_in_vicinity(food_transform)) {
+                // Portal::should_teleport(object_transform)
+
+				if((*iter)->portal_in == &players[1]) {
+					(*iter)->portal_in->vicinity.erase(*iter);
+>>>>>>> 042a981136bdbdfc74c7168519479b4047190611
+				}
 			} 
 			if (!updated && glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
 				if (players[1].should_teleport(*iter)) {
@@ -487,9 +517,7 @@ void GameMode::update(float elapsed) {
 				} else if (players[1].is_in_vicinity(food_transform)) {
 					update_vicinity(*iter, players[1], players[0]);
 					updated = true;
-                } else if (players[1].should_bounce(food_transform)) {
-                    food_transform->speed *= -1.f;
-                }
+				}
 			}
 			if (!updated) {
 				if((*iter)->portal_in != nullptr) {
