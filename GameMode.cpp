@@ -489,6 +489,8 @@ void GameMode::update(float elapsed) {
 					update_vicinity(*iter, players[1], players[0]);
 					updated = true;
                 } else if (players[1].should_bounce(food_transform)) {
+                    //credit to this for how to physics
+                    //https://gamedev.stackexchange.com/questions/23672/determine-resulting-angle-of-wall-collision/23674
                     food_transform->speed -= 2*glm::dot(food_transform->speed,
                                         players[0].normal)*players[0].normal;
 
