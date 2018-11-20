@@ -19,7 +19,7 @@ void Portal::move(vec2 const &vec) {
     this->position = this->position + vec;
 
     this->portal_transform->position = vec3(this->position, 0);
-    
+
     this->update_boundingbox();  // update bbx when position changes
 }
 
@@ -42,7 +42,7 @@ void Portal::update_boundingbox() {
 bool Portal::is_in_portal(const Scene::Transform *object_transform) {
     const BoundingBox *object_bbx = object_transform->boundingbox;
     std::vector< glm::vec2 > bbx_corners = object_bbx->get_corners();
-    
+
     for (auto &corner : bbx_corners) {
         // check every corner is in range
         float projected_length = glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel);
@@ -67,7 +67,7 @@ bool Portal::is_in_portal(const Scene::Transform *object_transform) {
 bool Portal::is_in_vicinity(const Scene::Transform *object_transform) {
     const BoundingBox *object_bbx = object_transform->boundingbox;
     std::vector< glm::vec2 > bbx_corners = object_bbx->get_corners();
-    
+
     for (auto &corner : bbx_corners) {
         // check every corner is in range
         float projected_length = glm::dot(corner - this->boundingbox->p0, this->boundingbox->parallel);
@@ -79,6 +79,12 @@ bool Portal::is_in_vicinity(const Scene::Transform *object_transform) {
     return glm::dot(between, normal) >= 0.0f;
 }
 
+bool Portal::should_bounce(const Scene::Transform *object_transform) {
+    const BoundingBox *object_bbx = object_transform->boundingbox;
+    std::vector< glm::vec2 > bbx_corners = object_bbx->get_corners();
+    return is_in_portal(object_transform) &&
+           glm::dot(this->normal, object_transform->speed) > 0.0f;
+}
 bool Portal::should_teleport(const Scene::Transform *object_transform) {
     return is_in_portal(object_transform) &&
            glm::dot(this->normal, object_transform->speed) < 0.0f;

@@ -463,11 +463,18 @@ void GameMode::update(float elapsed) {
 			}
 		}
 
-		{ // See if in a portal
-			float threshold = std::max(players[0].boundingbox->width, players[0].boundingbox->thickness) +
-							std::max(food_transform->boundingbox->width, food_transform->boundingbox->thickness);
-			if (glm::distance(players[0].portal_transform->position, food_transform->position) < threshold &&
-				players[0].is_in_vicinity(food_transform)) {  // Portal::should_teleport(object_transform)
+        { // See if in a portal
+			float threshold = std::max(players[0].boundingbox->width,
+                    players[0].boundingbox->thickness)
+                + std::max(food_transform->boundingbox->width,
+                        food_transform->boundingbox->thickness);
+            float dist = glm::distance(players[0].portal_transform->position,
+                        food_transform->position);
+            if (dist<threshold && players[0].should_bounce(food_transform)) {
+                food_transform->speed *=-1.f;
+            }
+			if (dist<threshold && players[0].is_in_vicinity(food_transform)) {
+                // Portal::should_teleport(object_transform)
 
 				if((*iter)->portal_in == &players[1]) {
 					(*iter)->portal_in->vicinity.erase(*iter);
