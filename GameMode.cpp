@@ -102,8 +102,8 @@ Load< GLuint > bloom_program(LoadTagDefault, [](){
                 "vec4 blur = center;\n"
                 "float centerB = dot(blur.rgb, vec3(1.0, 1.0, 1.0));\n"
                 "float brightness;\n"
-                "float threshold = 2.0;\n"
-                "float influence = .3;\n"
+                "float threshold = 1.0;\n"
+                "float influence = .2;\n"
 
                 "vec4 n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.x, ofs.y))\n"
                 "/textureSize(tex,0));\n"
@@ -300,6 +300,14 @@ void GameMode::load_scene() {
 	texture_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
 	texture_program_info.textures[0] = *white_tex;
 
+    Scene::Object::ProgramInfo bloom_program_info;
+    bloom_program_info.program = *bloom_program;
+    bloom_program_info.vao = *meshes_for_texture_program;
+	bloom_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
+	bloom_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
+	bloom_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
+
+
 	Scene::Object::ProgramInfo depth_program_info;
 	depth_program_info.program = depth_program->program;
 	depth_program_info.vao = *meshes_for_depth_program;
@@ -316,12 +324,16 @@ void GameMode::load_scene() {
 	{ // Portal 1
 		Scene::Object *obj = ret->new_object(p0_trans);
 		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-
+        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal1");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+		obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
+
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -330,12 +342,15 @@ void GameMode::load_scene() {
 	{ // Portal 2
 		Scene::Object *obj = ret->new_object(p1_trans);
 		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-
+        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal2");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+		obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -670,14 +685,13 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(texture_program->sky_direction_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
 
 	glUniform3fv(texture_program->spot_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
-
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
 	// Draw non-portalled things
 	scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
 
-	auto draw_portal = [this](Portal &p) {
+    auto draw_portal = [this](Portal &p) {
 		glUseProgram(*portal_depth_program);
 		glBindVertexArray(*empty_vao);
 		//glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -761,10 +775,10 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	//Copy scene from color buffer to screen, performing post-processing effects:
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, fbs.color_tex);
-    glUseProgram(*bloom_program);
 	glBindVertexArray(*empty_vao);
-
+    glUseProgram(*blur_program);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
+
 
 	glUseProgram(0);
 	glActiveTexture(GL_TEXTURE0);
