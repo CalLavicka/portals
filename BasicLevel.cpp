@@ -6,6 +6,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+//Credit:
+// THE HAPPY SONG by Nicolai Heidlas Music https://soundcloud.com/nicolai-heidlas
+// Creative Commons — Attribution 3.0 Unported— CC BY 3.0 
+// http://creativecommons.org/licenses/b...
+// Music promoted by Audio Library https://youtu.be/cGuaRsXLScQ
 Load< Sound::Sample > basic_bgm(LoadTagDefault, [](){
 	return new Sound::Sample(data_path("sound_effects/the_happy_song_full.wav"));
 });
