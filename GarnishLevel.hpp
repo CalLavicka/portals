@@ -5,6 +5,7 @@
 struct GarnishLevel : public Level {
     GarnishLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
                         Scene::Object::ProgramInfo const &depth_program_info);
+    virtual ~GarnishLevel() {};
 
 
     Scene::Object::ProgramInfo texture_program_info;

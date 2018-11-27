@@ -1,8 +1,14 @@
 #include "BasicLevel.hpp"
 #include "BoundingBox.hpp"
+#include "Load.hpp"
+#include "data_path.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+Load< Sound::Sample > basic_bgm(LoadTagDefault, [](){
+	return new Sound::Sample(data_path("sound_effects/the_happy_song_full.wav"));
+});
 
 BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
                             Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
@@ -32,6 +38,12 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 
     this->texture_program_info = texture_program_info;
     this->depth_program_info = depth_program_info;
+
+	bgm = basic_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
+}
+
+BasicLevel::~BasicLevel() {
+	if (this->bgm) this->bgm->stop();  // stop bgm
 }
 
 std::string food_names[] = {"Broccoli", "Potato", "Carrot", "Mushroom"};

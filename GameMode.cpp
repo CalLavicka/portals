@@ -355,20 +355,25 @@ void GameMode::load_scene() {
 
 	switch(level) {
 	case 0:
-		current_level = new BasicLevel(this, texture_program_info, depth_program_info);
+		// current_level = new BasicLevel(this, texture_program_info, depth_program_info);
+		current_level = std::make_shared< BasicLevel >(this, texture_program_info, depth_program_info);
 		scores[0] = 50;
 		break;
 	case 1:
-		current_level = new OvenLevel(this, texture_program_info, depth_program_info);
+		// current_level = new OvenLevel(this, texture_program_info, depth_program_info);
+		current_level = std::make_shared< OvenLevel >(this, texture_program_info, depth_program_info);
 		scores[1] = 0;
 		break;
     case 2:
-        current_level = new GarnishLevel(this, texture_program_info,
+        // current_level = new GarnishLevel(this, texture_program_info,
+        //                                 depth_program_info);
+        current_level = std::make_shared< GarnishLevel>(this, texture_program_info,
                                         depth_program_info);
         scores[2] = 0;
         break;
 	default:
-		current_level = new MenuLevel(this, texture_program_info, depth_program_info);
+		// current_level = new MenuLevel(this, texture_program_info, depth_program_info);
+		current_level = std::make_shared< MenuLevel >(this, texture_program_info, depth_program_info);
 		show_level_select();
 		break;
 	}
