@@ -493,6 +493,7 @@ void GameMode::update(float elapsed) {
                 } else if (players[0].should_bounce(food_transform)) {
                     food_transform->speed -= 2*glm::dot(food_transform->speed,
                                         players[0].normal)*players[0].normal;
+                    food_transform->speed *= 0.8f;
                 }
 			}
 			if (!updated && glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
@@ -508,6 +509,7 @@ void GameMode::update(float elapsed) {
                     //https://gamedev.stackexchange.com/questions/23672/determine-resulting-angle-of-wall-collision/23674
                     food_transform->speed -= 2*glm::dot(food_transform->speed,
                                         players[0].normal)*players[0].normal;
+                    food_transform->speed *= 0.8f;
 
                 }
 			}
@@ -533,7 +535,7 @@ void GameMode::update(float elapsed) {
 				}else {
 					food_transform->speed.x = glm::min(food_transform->speed.x + food_transform->speed.y, 0.f);
 				}
-				food_transform->speed.y = 0.f;
+                food_transform->speed.y *= -0.2f;
 			}
 
 			if (food_transform->position.x >= 70.f && food_transform->speed.x > 0.f) {
