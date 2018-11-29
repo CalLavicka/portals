@@ -18,6 +18,8 @@ struct Portal {
 	void move(glm::vec2 const &vec);
 	void rotate(float const &to_rot);
 	void update(float const elapsed);
+	void move_to(glm::vec2 const &pos);
+	void rotate_to(glm::vec2 const &target_normal);
 
 	Scene::Transform *portal_transform;
 	BoundingBox *boundingbox = nullptr;

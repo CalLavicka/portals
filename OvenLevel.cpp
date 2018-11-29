@@ -6,6 +6,7 @@
 #include "Load.hpp"
 #include "compile_program.hpp"
 #include "gl_errors.hpp"
+#include "draw_text.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -28,22 +29,37 @@ Load< GLuint > heat_program(LoadTagDefault, [](){
 	GLuint program = compile_program(
 		//this draws a triangle that covers the entire screen:
 		"#version 330\n"
-		"uniform float top;\n"
-        "uniform float bottom;\n"
+		//"uniform float top;\n"
+        //"uniform float bottom;\n"
 		"uniform mat4 cam_scale;\n"
+        "out vec2 position;\n"
 		"void main() {\n"
-		"	if (gl_VertexID < 4) {\n"
-		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), 100 * (gl_VertexID & 2) + top, 0.5, 1.0);\n"
-		"	} else if(gl_VertexID>=4){\n"
-		"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), -100 * (gl_VertexID & 2) + bottom, 0.5, 1.0);\n"
-		"	}\n"
+		//"	if (gl_VertexID < 4) {\n"
+		//"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), 100 * (gl_VertexID & 2) + top, 0.5, 1.0);\n"
+		//"	} else if(gl_VertexID>=4){\n"
+		//"		gl_Position = cam_scale * vec4(100 * (2 * (gl_VertexID & 1) - 1), -100 * (gl_VertexID & 2) + bottom, 0.5, 1.0);\n"
+		//"	}\n"
+        "   position = vec2(100 * (2 * (gl_VertexID & 1) - 1),  100 * (gl_VertexID & 2) - 100);\n"
+        "   gl_Position = cam_scale * vec4(position, 0.5, 1.0);\n"
 		"}\n"
 		,
 
 		"#version 330\n"
+        "in vec2 position;\n"
+        "uniform float top;\n"
+        "uniform float bottom;\n"
+        "uniform float time;\n"
 		"out vec4 fragColor;\n"
 		"void main() {\n"
-		"	fragColor = vec4(1.0, 0.0, 0.0, 0.2);\n"
+        //"   vec2 position = gl_FragCoord.xy;\n"
+        "   float mod = sin(cos(time) * 2 + position.x * 0.5f) * cos(time);\n"
+        "   if (position.y > top + mod || position.y < bottom + mod) {\n"
+        "       float distortion = sin(time * 4 + position.y * 0.5f);\n"
+        "       float color = cos(distortion + position.x * 0.2f);\n"
+		"	    fragColor = vec4(0.9f + color * 0.1f, 0.1f - color * 0.05f, 0.0, 0.2);\n"
+        "   } else {\n"
+        "       fragColor = vec4(0.0);\n"
+        "   }\n"
 		"}\n"
 	);
 
@@ -151,6 +167,8 @@ OvenLevel::OvenLevel(GameMode *gm,
         oven->transform->position = vec3(0,7,0);
     }
 
+    messagetime = 5.f;
+
 }
 
 void OvenLevel::update(float elapsed) {
@@ -177,12 +195,12 @@ void OvenLevel::update(float elapsed) {
 
 
     if (steak->transform->position.y > top || steak->transform->position.y < bottom) {
-        heat += 40.f * elapsed;
+        heat += 10.f * elapsed;
         if (heat > 100.f) {
             gm->show_lose();
         }
     } else {
-        heat = max(heat - 20.f * elapsed, 0.f);
+        //heat = max(heat - 20.f * elapsed, 0.f);
         score_timer -= elapsed;
         if (score_timer < 0.f) {
             gm->scores[gm->level]+=1;
@@ -197,6 +215,8 @@ void OvenLevel::update(float elapsed) {
 
     top = sin((120.f - time) * 0.2f) * 30.f + 20.f;
     bottom = top - 40.f;
+
+    messagetime -= elapsed;
 }
 
 void OvenLevel::fall_off(Scene::Object *o) {
@@ -209,21 +229,38 @@ void OvenLevel::render_pass() {
     glUseProgram(*heat_program);
 	glBindVertexArray(*empty_vao);
 
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
 
     static GLuint uniform_top = glGetUniformLocation(*heat_program, "top");
     static GLuint uniform_bottom = glGetUniformLocation(*heat_program, "bottom");
 	static GLuint cam_scale_mat4 = glGetUniformLocation(*heat_program, "cam_scale");
+    static GLuint uniform_time = glGetUniformLocation(*heat_program, "time");
 
 
 	glm::mat4 cam_scale = gm->camera->make_projection() * gm->camera->transform->make_world_to_local();
 
     glUniform1f(uniform_top, top);
     glUniform1f(uniform_bottom, bottom);
+    glUniform1f(uniform_time, time);
 	glUniformMatrix4fv(cam_scale_mat4, 1, GL_FALSE, glm::value_ptr(cam_scale));
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+	//glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+
+    if (messagetime > 0.f) {
+        std::string messages[] = {"DONT BURN", "THE MEAT", "FOR 120 SECONDS"};
+        float height = 0.15f;
+
+        float ypos = -0.3f;
+        for(std::string message : messages) {
+            float width = text_width(message, height);
+            draw_text(message, glm::vec2( -width/2.f, ypos), height,
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ypos -= 0.2f;
+        }
+    }
+
+    glEnable(GL_DEPTH_TEST);
 
     GL_ERRORS();
 

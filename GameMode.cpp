@@ -341,6 +341,13 @@ void GameMode::load_scene() {
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
 	}
 
+	players[0].portal_transform = p0_trans;
+	players[1].portal_transform = p1_trans;
+	players[0].move_to(vec2(-10,0));
+	players[1].move_to(vec2(10,0));
+	players[0].rotate_to(vec2(0,1));
+	players[1].rotate_to(vec2(0,1));
+
 	Scene::Transform *cam_trans = ret->new_transform();
 	camera = ret->new_camera(cam_trans);
 	camera->is_perspective = false;
@@ -373,14 +380,18 @@ void GameMode::load_scene() {
 		break;
 	}
 
-	players[0].portal_transform = p0_trans;
-	players[1].portal_transform = p1_trans;
+	paused = false;
 }
 
 GameMode::GameMode() {
 	//load_scene();
 
 	//SDL_SetRelativeMouseMode(SDL_TRUE);
+
+	SaveData res = LoadSave(1);
+	if(res.personalBests.size() >= 2) {
+		high_scores = res.personalBests;
+	}
 }
 
 GameMode::~GameMode() {
@@ -441,7 +452,7 @@ bool GameMode::handle_mouse_event(ManyMouseEvent const &event, glm::uvec2 const 
 }
 
 void GameMode::update(float elapsed) {
-
+	if (paused) return;
 	{ // Update portals
 		players[0].update(elapsed);
 		players[1].update(elapsed);
@@ -508,12 +519,8 @@ void GameMode::update(float elapsed) {
 			food_transform->boundingbox->update_origin(food_transform->position);
 
 			if (food_transform->position.y >= 50.f && food_transform->speed.y > 0.f) {
-				if (food_transform->speed.x > 0.f) {
-					food_transform->speed.x = glm::max(food_transform->speed.x - food_transform->speed.y, 0.f);
-				}else {
-					food_transform->speed.x = glm::min(food_transform->speed.x + food_transform->speed.y, 0.f);
-				}
-				food_transform->speed.y = 0.f;
+				food_transform->speed.x /= 10.f;
+				food_transform->speed.y /= -10.f;
 			}
 
 			if (food_transform->position.x >= 70.f && food_transform->speed.x > 0.f) {
@@ -735,14 +742,24 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glUseProgram(texture_program->program);
 	current_level->render_pass();
 
-	//draw score
 	if (level < 2) {
 		glDisable(GL_DEPTH_TEST);
-		std::string message = "SCORE "+std::to_string(scores[level]);
-		float height = 0.1f;
-		float width = text_width(message, height);
-		draw_text(message, glm::vec2( 0.3 * width, 0.8f), height,
+
+		{ // draw score
+			std::string message = "SCORE "+std::to_string(scores[level]);
+			float height = 0.05f;
+			float width = text_width(message, height);
+			draw_text(message, glm::vec2( 1.2f - width, 0.8f), height,
 				glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		}
+
+		{ // draw high score
+			std::string message = "HIGH SCORE "+std::to_string(high_scores[level]);
+			float height = 0.05f;
+			//float width = text_width(message, height);
+			draw_text(message, glm::vec2( -1.2f, 0.8f), height,
+					glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		}
 
 		glEnable(GL_DEPTH_TEST);
 	}
@@ -827,7 +844,7 @@ void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_po
 			float par_spd = glm::dot(old_speed, from_par);// - glm::dot(from_portal.speed, from_par);
 
 			// If too slow along normal, give boost
-			if(norm_spd > -5.f) norm_spd = -5.f;
+			//if(norm_spd > -3.f) norm_spd = -3.f;
 			// new speed along new normal and parallel, in opposite direction
 			vec2 new_speed = -norm_spd * to_normal - par_spd * to_par;
 			object_transform->speed = new_speed + to_portal.speed;
@@ -884,7 +901,16 @@ void GameMode::show_pause_menu() {
 	Mode::set_current(menu);
 }
 
+void GameMode::save_game() {
+	if (scores[level] > high_scores[level]) {
+		high_scores[level] = scores[level];
+	}
+
+	save(1, level, high_scores);
+}
+
 void GameMode::show_lose() {
+	save_game();
 	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
 	std::shared_ptr< Mode > game = shared_from_this();
@@ -892,17 +918,22 @@ void GameMode::show_lose() {
 
 	menu->choices.emplace_back("GAME OVER");
 	menu->choices.emplace_back("RESTAURANT BANKRUPT");
+	menu->choices.emplace_back("RETRY", [this, game]() {
+		this->load_scene();
+		Mode::set_current(game);
+	});
 	menu->choices.emplace_back("QUIT", [](){
 			Mode::set_current(nullptr);
 			});
 
 	menu->selected = 2;
+	paused = true;
 
 	Mode::set_current(menu);
 }
 
 void GameMode::show_win() {
-
+	save_game();
 	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
 	std::shared_ptr< Mode > game = shared_from_this();
@@ -916,11 +947,14 @@ void GameMode::show_win() {
 			});
 
 	menu->selected = 1;
+	paused = true;
 
 	Mode::set_current(menu);
 }
 
 void GameMode::show_level_select() {
+	save_game();
+
 	std::shared_ptr< MenuMode > menu = std::make_shared< MenuMode >();
 
 	std::shared_ptr< Mode > game = shared_from_this();
@@ -950,6 +984,8 @@ void GameMode::show_level_select() {
 			});
 
 	menu->selected = 1;
+
+	paused = true;
 
 	Mode::set_current(menu);
 }

@@ -17,7 +17,11 @@ Portal::~Portal() {
 }
 
 void Portal::move(vec2 const &vec) {
-    this->position = this->position + vec;
+    move_to(this->position + vec);
+}
+
+void Portal::move_to(vec2 const &pos) {
+    this->position = pos;
 
     this->portal_transform->position = vec3(this->position, 0);
 
@@ -28,12 +32,13 @@ void Portal::rotate(float const &to_rot) {
     float cc = cos(to_rot);
     float ss = sin(to_rot);
     vec2 newnormal = vec2(normal.x * cc - normal.y * ss, normal.x * ss + normal.y * cc);
-    normal = newnormal;
+    rotate_to(newnormal);
+}
 
-    //this->portal_transform->rotation = angleAxis(atan2f(normal.y, normal.x), vec3(0,0,1));
+void Portal::rotate_to(vec2 const &target_normal) {
+    normal = target_normal;
     this->portal_transform->rotation = angleAxis(atan2f(-normal.x, normal.y), vec3(0,0,1)) * angleAxis(0.3f, vec3(1,0,0));
-
-    this->update_boundingbox();  // update bbx when orientation changes
+    this->update_boundingbox();
 }
 
 void Portal::update(float const elapsed) {

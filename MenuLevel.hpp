@@ -8,4 +8,5 @@ struct MenuLevel : public BasicLevel {
 
     virtual void update(float elapsed) override;
 	virtual void fall_off(Scene::Object *o) override {};
+    virtual void render_pass() override {};
 };

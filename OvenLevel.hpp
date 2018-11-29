@@ -18,6 +18,8 @@ struct OvenLevel : public Level {
     float top = 20.f;
     float bottom = -20.f;
 
+    float messagetime;
+
 	virtual void update(float elapsed) override;
 	virtual void fall_off(Scene::Object *o) override;
 	virtual void render_pass() override;

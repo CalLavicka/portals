@@ -48,6 +48,7 @@ struct GameMode : public Mode {
 	float rot_speeds[2] = {0,0};
 	float sensitivities[2] = {70.f,70.f};
     std::vector <uint32_t> scores = {50, 0};
+    std::vector <uint32_t> high_scores = {50, 0};
     uint32_t level = 10;
 	Scene::Camera * camera = nullptr;
 
@@ -59,10 +60,14 @@ struct GameMode : public Mode {
     // teleport the object to the assigned portal
 	void teleport(Scene::Transform *object_transform, const uint32_t to_portal, bool update_speed = true);
 
+	void save_game();
+
     void show_pause_menu();
     void show_lose();
     void show_win();
     void show_level_select();
+
+	bool paused = false;
 
     Scene *scene = nullptr;
 };

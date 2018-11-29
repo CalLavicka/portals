@@ -108,6 +108,8 @@ struct Scene {
 
 		// Which portal it is in
 		Portal *portal_in = nullptr;
+
+		std::string data = "";
 	};
 
 	//"Lamp"s contain information about lights:
