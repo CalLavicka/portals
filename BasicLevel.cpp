@@ -1,5 +1,7 @@
 #include "BasicLevel.hpp"
 #include "BoundingBox.hpp"
+#include "Load.hpp"
+#include "data_path.hpp"
 
 #include "draw_text.hpp"
 
@@ -7,6 +9,15 @@
 #include <glm/gtc/quaternion.hpp>
 
 std::string food_names[] = {"Broccoli", "Potato", "Carrot", "Mushroom"};
+
+//Credit:
+// THE HAPPY SONG by Nicolai Heidlas Music https://soundcloud.com/nicolai-heidlas
+// Creative Commons — Attribution 3.0 Unported— CC BY 3.0 
+// http://creativecommons.org/licenses/b...
+// Music promoted by Audio Library https://youtu.be/cGuaRsXLScQ
+Load< Sound::Sample > basic_bgm(LoadTagDefault, [](){
+	return new Sound::Sample(data_path("sound_effects/the_happy_song_full.wav"));
+});
 
 BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
                             Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
@@ -44,6 +55,12 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 	}
 
 	messagetime = 5.f;
+    
+	bgm = basic_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
+}
+
+BasicLevel::~BasicLevel() {
+	if (this->bgm) this->bgm->stop();  // stop bgm
 }
 
 Scene::Object *BasicLevel::create_food(std::string veg_name) {

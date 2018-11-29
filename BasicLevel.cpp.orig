@@ -1,5 +1,7 @@
 #include "BasicLevel.hpp"
 #include "BoundingBox.hpp"
+#include "Load.hpp"
+#include "data_path.hpp"
 
 #include "draw_text.hpp"
 
@@ -8,6 +10,16 @@
 
 <<<<<<< HEAD
 std::string food_names[] = {"Broccoli", "Potato", "Carrot", "Mushroom"};
+=======
+//Credit:
+// THE HAPPY SONG by Nicolai Heidlas Music https://soundcloud.com/nicolai-heidlas
+// Creative Commons — Attribution 3.0 Unported— CC BY 3.0 
+// http://creativecommons.org/licenses/b...
+// Music promoted by Audio Library https://youtu.be/cGuaRsXLScQ
+Load< Sound::Sample > basic_bgm(LoadTagDefault, [](){
+	return new Sound::Sample(data_path("sound_effects/the_happy_song_full.wav"));
+});
+>>>>>>> e30ccb16efeb3c61085c5f7538b5dba2f619516b
 
 BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
                             Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
@@ -18,14 +30,6 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 
 	{ // Add the four pots
 		for(int i=0; i<4; i++) {
-=======
-BasicLevel::BasicLevel(GameMode *gm,
-        Scene::Object::ProgramInfo const &texture_program_info,
-            Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
-
-	{ // Add the three pots
-		for(int i=0; i<3; i++) {
->>>>>>> 0ff6c73994f3638b8ce4be8afe1e44b4b58e9e08
 			Scene::Object *obj = gm->scene->new_object(gm->scene->new_transform());
 			obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
 			obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
@@ -52,7 +56,18 @@ BasicLevel::BasicLevel(GameMode *gm,
 		}
 	}
 
+<<<<<<< HEAD
 	messagetime = 5.f;
+=======
+    this->texture_program_info = texture_program_info;
+    this->depth_program_info = depth_program_info;
+
+	bgm = basic_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
+}
+
+BasicLevel::~BasicLevel() {
+	if (this->bgm) this->bgm->stop();  // stop bgm
+>>>>>>> e30ccb16efeb3c61085c5f7538b5dba2f619516b
 }
 
 Scene::Object *BasicLevel::create_food(std::string veg_name) {
@@ -117,7 +132,6 @@ void BasicLevel::fall_off(Scene::Object *o) {
 		gm->show_lose();
 	}
 }
-<<<<<<< HEAD
 
 void BasicLevel::render_pass() {
 
@@ -138,5 +152,3 @@ void BasicLevel::render_pass() {
 
 	glEnable(GL_DEPTH_TEST);
 }
-=======
->>>>>>> 0ff6c73994f3638b8ce4be8afe1e44b4b58e9e08

@@ -52,7 +52,8 @@ struct GameMode : public Mode {
     uint32_t level = 10;
 	Scene::Camera * camera = nullptr;
 
-	Level *current_level = nullptr;
+	// Level *current_level = nullptr;
+	std::shared_ptr< Level > current_level = nullptr;
 
 	std::list<Scene::Object *> foods;
 	std::vector<Scene::Object *> pots;

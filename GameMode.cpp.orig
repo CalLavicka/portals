@@ -374,6 +374,7 @@ void GameMode::load_scene() {
 	scene = ret;
 
 	switch(level) {
+<<<<<<< HEAD
         case 0:
 		current_level = new BasicLevel(this, texture_program_info,
                 depth_program_info);
@@ -392,6 +393,28 @@ void GameMode::load_scene() {
 	default:
 		current_level = new MenuLevel(this, texture_program_info,
                 depth_program_info);
+=======
+	case 0:
+		// current_level = new BasicLevel(this, texture_program_info, depth_program_info);
+		current_level = std::make_shared< BasicLevel >(this, texture_program_info, depth_program_info);
+		scores[0] = 50;
+		break;
+	case 1:
+		// current_level = new OvenLevel(this, texture_program_info, depth_program_info);
+		current_level = std::make_shared< OvenLevel >(this, texture_program_info, depth_program_info);
+		scores[1] = 0;
+		break;
+    case 2:
+        // current_level = new GarnishLevel(this, texture_program_info,
+        //                                 depth_program_info);
+        current_level = std::make_shared< GarnishLevel>(this, texture_program_info,
+                                        depth_program_info);
+        scores[2] = 0;
+        break;
+	default:
+		// current_level = new MenuLevel(this, texture_program_info, depth_program_info);
+		current_level = std::make_shared< MenuLevel >(this, texture_program_info, depth_program_info);
+>>>>>>> e30ccb16efeb3c61085c5f7538b5dba2f619516b
 		show_level_select();
 		break;
 	}
@@ -542,17 +565,8 @@ void GameMode::update(float elapsed) {
 			food_transform->boundingbox->update_origin(food_transform->position);
 
 			if (food_transform->position.y >= 50.f && food_transform->speed.y > 0.f) {
-<<<<<<< HEAD
 				food_transform->speed.x /= 10.f;
 				food_transform->speed.y /= -10.f;
-=======
-				if (food_transform->speed.x > 0.f) {
-					food_transform->speed.x = glm::max(food_transform->speed.x - food_transform->speed.y, 0.f);
-				}else {
-					food_transform->speed.x = glm::min(food_transform->speed.x + food_transform->speed.y, 0.f);
-				}
-                food_transform->speed.y *= -0.2f;
->>>>>>> 0ff6c73994f3638b8ce4be8afe1e44b4b58e9e08
 			}
 
 			if (food_transform->position.x >= 70.f && food_transform->speed.x > 0.f) {

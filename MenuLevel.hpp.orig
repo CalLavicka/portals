@@ -3,15 +3,17 @@
 #include "BasicLevel.hpp"
 
 struct MenuLevel : public BasicLevel {
+<<<<<<< HEAD
     MenuLevel(GameMode *gm,
             Scene::Object::ProgramInfo const &texture_program_info,
             Scene::Object::ProgramInfo const &depth_program_info);
+=======
+    MenuLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
+                        Scene::Object::ProgramInfo const &depth_program_info);
+    virtual ~MenuLevel() {};
+>>>>>>> e30ccb16efeb3c61085c5f7538b5dba2f619516b
 
     virtual void update(float elapsed) override;
 	virtual void fall_off(Scene::Object *o) override {};
-<<<<<<< HEAD
     virtual void render_pass() override {};
 };
-=======
-};
->>>>>>> 0ff6c73994f3638b8ce4be8afe1e44b4b58e9e08

@@ -25,6 +25,14 @@ Load< GLuint > steak_meshes_for_depth_program(LoadTagDefault, [](){
 	return new GLuint(steak_meshes->make_vao_for_program(depth_program->program));
 });
 
+Load< Sound::Sample > oven_bgm(LoadTagDefault, [](){
+	return new Sound::Sample(data_path("sound_effects/taiko_warrior_trimmed.wav"));
+});
+
+Load< Sound::Sample > oven_init_bgm(LoadTagDefault, [](){
+	return new Sound::Sample(data_path("sound_effects/taiko_initial_pipe.wav"));
+});
+
 Load< GLuint > heat_program(LoadTagDefault, [](){
 	GLuint program = compile_program(
 		//this draws a triangle that covers the entire screen:
@@ -169,6 +177,11 @@ OvenLevel::OvenLevel(GameMode *gm,
 
     messagetime = 5.f;
 
+	oven_init_bgm->play(gm->camera->transform->position, 1.0f);  // play bgm
+}
+
+OvenLevel::~OvenLevel() {
+	if (this->bgm) this->bgm->stop();  // stop bgm
 }
 
 void OvenLevel::update(float elapsed) {
@@ -217,6 +230,13 @@ void OvenLevel::update(float elapsed) {
     bottom = top - 40.f;
 
     messagetime -= elapsed;
+
+    if (play_loop_bgm_countdown > 0.0f) {
+        play_loop_bgm_countdown -= elapsed;
+        if (play_loop_bgm_countdown <= 0.0f) {
+            bgm = oven_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
+        }
+    }
 }
 
 void OvenLevel::fall_off(Scene::Object *o) {
