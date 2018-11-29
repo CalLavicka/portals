@@ -487,9 +487,10 @@ void GameMode::update(float elapsed) {
 					update_vicinity(*iter, players[0], players[1]);
 					updated = true;
                 } else if (players[0].should_bounce(food_transform)) {
-                    food_transform->speed *= -1.f;
+                    food_transform->speed -= 2*glm::dot(food_transform->speed,
+                                        players[0].normal)*players[0].normal;
                 }
-			} 
+			}
 			if (!updated && glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
 				if (players[1].should_teleport(*iter)) {
 					teleport(food_transform, 0);  // GameMode::teleport(object, destination_portal)
@@ -499,7 +500,11 @@ void GameMode::update(float elapsed) {
 					update_vicinity(*iter, players[1], players[0]);
 					updated = true;
                 } else if (players[1].should_bounce(food_transform)) {
-                    food_transform->speed *= -1.f;
+                    //credit to this for how to physics
+                    //https://gamedev.stackexchange.com/questions/23672/determine-resulting-angle-of-wall-collision/23674
+                    food_transform->speed -= 2*glm::dot(food_transform->speed,
+                                        players[0].normal)*players[0].normal;
+
                 }
 			}
 			if (!updated) {
