@@ -303,14 +303,16 @@ void GameMode::load_scene() {
 	texture_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
 	texture_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
 	texture_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
+    texture_program_info.set_uniforms = [](){
+        glUniform1f(texture_program->glow_amt_float, 0.0f);
+    };
+
 	texture_program_info.textures[0] = *white_tex;
 
-    Scene::Object::ProgramInfo bloom_program_info;
-    bloom_program_info.program = *bloom_program;
-	bloom_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
-	bloom_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
-	bloom_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
-    bloom_program_info.textures[0] = *white_tex;
+    Scene::Object::ProgramInfo portal_program_info = texture_program_info;
+    portal_program_info.set_uniforms = [](){
+        glUniform1f(texture_program->glow_amt_float, 1.0f);
+    };
 
 	Scene::Object::ProgramInfo depth_program_info;
 	depth_program_info.program = depth_program->program;
@@ -319,6 +321,7 @@ void GameMode::load_scene() {
 
 	// Adjust for veges
 	texture_program_info.vao = *vegetable_meshes_for_texture_program;
+    portal_program_info.vao = *vegetable_meshes_for_texture_program;
 	depth_program_info.vao = *vegetable_meshes_for_depth_program;
 
 	// Add in portal
@@ -327,16 +330,12 @@ void GameMode::load_scene() {
 
 	{ // Portal 1
 		Scene::Object *obj = ret->new_object(p0_trans);
-		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault] = portal_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal1");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-        obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
-		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -344,16 +343,12 @@ void GameMode::load_scene() {
 
 	{ // Portal 2
 		Scene::Object *obj = ret->new_object(p1_trans);
-		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault] = portal_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal2");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-        obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
-		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -374,22 +369,22 @@ void GameMode::load_scene() {
 	switch(level) {
         case 0:
 		current_level = new BasicLevel(this, texture_program_info,
-                bloom_program_info, depth_program_info);
+                depth_program_info);
 		scores[0] = 50;
 		break;
 	case 1:
 		current_level = new OvenLevel(this, texture_program_info,
-                bloom_program_info, depth_program_info);
+                depth_program_info);
 		scores[1] = 0;
 		break;
     case 2:
         current_level = new GarnishLevel(this, texture_program_info,
-                bloom_program_info, depth_program_info);
+                depth_program_info);
         scores[2] = 0;
         break;
 	default:
 		current_level = new MenuLevel(this, texture_program_info,
-                bloom_program_info, depth_program_info);
+                depth_program_info);
 		show_level_select();
 		break;
 	}
@@ -639,7 +634,10 @@ struct Framebuffers {
 			if (fb == 0) glGenFramebuffers(1, &fb);
 			glBindFramebuffer(GL_FRAMEBUFFER, fb);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, bloom_color_tex, 0);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rb);
+            GLenum bufs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+            glDrawBuffers(2, bufs);
 			check_fb();
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -694,15 +692,12 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 
 	glViewport(0,0,drawable_size.x, drawable_size.y);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fbs.bloom_fb);
-
-	glClearColor(0.f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
 
-    glClearColor(0.f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLfloat black[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    glClearBufferfv(GL_COLOR, 0, black);
+    glClearBufferfv(GL_COLOR, 1, black);
+	glClear(GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -805,10 +800,6 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 
 	GL_ERRORS();
 
-	// Draw non-portalled things
-    glBindFramebuffer(GL_FRAMEBUFFER, fbs.bloom_fb);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
 	//Copy scene from color buffer to screen, performing post-processing effects:
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);

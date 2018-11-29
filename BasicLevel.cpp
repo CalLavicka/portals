@@ -6,7 +6,6 @@
 
 BasicLevel::BasicLevel(GameMode *gm,
         Scene::Object::ProgramInfo const &texture_program_info,
-            Scene::Object::ProgramInfo const &bloom_program_info,
             Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
 
 	{ // Add the three pots
