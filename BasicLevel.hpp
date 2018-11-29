@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Level.hpp"
-#include "Sound.hpp"
 #include "Portal.hpp"
 
 struct BasicLevel : public Level {
@@ -19,5 +18,4 @@ struct BasicLevel : public Level {
     void spawn_food();
 	uint32_t fruit_hit = 0;
 	float fruit_timer = 0.f;
-    std::shared_ptr< Sound::PlayingSample > bgm;
 };
