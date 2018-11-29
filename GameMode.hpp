@@ -47,8 +47,8 @@ struct GameMode : public Mode {
 	Portal players[2];
 	float rot_speeds[2] = {0,0};
 	float sensitivities[2] = {70.f,70.f};
-    std::vector <uint32_t> scores = {50, 0};
-    std::vector <uint32_t> high_scores = {50, 0};
+    std::vector <uint32_t> scores = {50, 0, 0};
+    std::vector <uint32_t> high_scores = {50, 0, 0};
     uint32_t level = 10;
 	Scene::Camera * camera = nullptr;
 

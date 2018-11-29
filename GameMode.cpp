@@ -407,7 +407,7 @@ GameMode::GameMode() {
 	//SDL_SetRelativeMouseMode(SDL_TRUE);
 
 	SaveData res = LoadSave(1);
-	if(res.personalBests.size() >= 2) {
+	if(res.personalBests.size() >= 3) {
 		high_scores = res.personalBests;
 	}
 }
