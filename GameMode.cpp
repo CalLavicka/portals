@@ -13,7 +13,6 @@
 #include "draw_text.hpp" //helper to... um.. draw text
 #include "load_save_png.hpp"
 #include "texture_program.hpp"
-#include "bloom_program.hpp"
 #include "depth_program.hpp"
 
 #include "BasicLevel.hpp"
@@ -42,10 +41,6 @@ Load< GLuint > meshes_for_texture_program(LoadTagDefault, [](){
 	return new GLuint(meshes->make_vao_for_program(texture_program->program));
 });
 
-Load< GLuint > meshes_for_bloom_program(LoadTagDefault, [](){
-	return new GLuint(meshes->make_vao_for_program(bloom_program->program));
-});
-
 Load< GLuint > meshes_for_depth_program(LoadTagDefault, [](){
 	return new GLuint(meshes->make_vao_for_program(depth_program->program));
 });
@@ -58,9 +53,6 @@ Load< GLuint > vegetable_meshes_for_texture_program(LoadTagDefault, [](){
 	return new GLuint(vegetable_meshes->make_vao_for_program(texture_program->program));
 });
 
-Load< GLuint > vegetable_meshes_for_bloom_program(LoadTagDefault, [](){
-	return new GLuint(vegetable_meshes->make_vao_for_program(bloom_program->program));
-});
 
 Load< GLuint > vegetable_meshes_for_depth_program(LoadTagDefault, [](){
 	return new GLuint(vegetable_meshes->make_vao_for_program(depth_program->program));
@@ -74,6 +66,83 @@ Load< GLuint > empty_vao(LoadTagDefault, [](){
 	glBindVertexArray(0);
 	return new GLuint(vao);
 });
+
+Load< GLuint > bloom_program(LoadTagDefault, [](){
+        GLuint program = compile_program(
+                //this draws a triangle that covers the entire screen:
+                "#version 330\n"
+                "void main() {\n"
+                "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
+                "}\n"
+                ,
+                //NOTE on reading screen texture:
+                //texelFetch() gives direct pixel access with integer coordinates, but accessing out-of-bounds pixel is undefined:
+                //	vec4 color = texelFetch(tex, ivec2(gl_FragCoord.xy), 0);
+                //texture() requires using [0,1] coordinates, but handles out-of-bounds more gracefully (using wrap settings of underlying texture):
+                //	vec4 color = texture(tex, gl_FragCoord.xy / textureSize(tex,0));
+
+                "#version 330\n"
+                "uniform sampler2D tex;\n"
+               "out vec4 fragColor;\n"
+                "void main() {\n"
+                "	vec2 at = (gl_FragCoord.xy - 0.5 * textureSize(tex, 0)) / textureSize(tex, 0).y;\n"
+
+                //pick a vector to move in for blur using function inspired by:
+                //https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
+                "float distance = 8.0f;\n"
+                "	vec2 ofs = distance * normalize(vec2(\n"
+                "		fract(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))),\n"
+                "		fract(dot(gl_FragCoord.xy ,vec2(96.3869,-27.5796)))\n"
+                "	));\n"
+                //referenced guidance on Piazza:
+                //https://piazza.com/class/jlfaf4xoz4y665?cid=65
+                //I did read this too though:
+                //https://learnopengl.com/Advanced-Lighting/Bloom
+                "vec4 center = texture(tex, gl_FragCoord.xy/textureSize(tex, 0));\n"
+
+                "vec4 blur = center;\n"
+                "float centerB = dot(blur.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "float brightness;\n"
+                "float threshold = 1.0;\n"
+                "float influence = .2;\n"
+
+                "vec4 n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.x, ofs.y))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.y, ofs.x))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.x, -ofs.y))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold) \n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.y, -ofs.x))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "	fragColor = vec4(blur.rgb, 1.0);\n"
+                "}\n"
+                );
+
+        glUseProgram(program);
+
+        glUniform1i(glGetUniformLocation(program, "tex"), 0);
+
+        glUseProgram(0);
+
+        return new GLuint(program);
+});
+
 
 Load< GLuint > blur_program(LoadTagDefault, [](){
 	GLuint program = compile_program(
@@ -90,35 +159,39 @@ Load< GLuint > blur_program(LoadTagDefault, [](){
 		//	vec4 color = texture(tex, gl_FragCoord.xy / textureSize(tex,0));
 
 		"#version 330\n"
-		"uniform sampler2D tex;\n"
+		"uniform sampler2D color_tex;\n"
+        "uniform sampler2D bloom_tex;\n"
 		"out vec4 fragColor;\n"
 		"void main() {\n"
-		"	vec2 at = (gl_FragCoord.xy - 0.5 * textureSize(tex, 0)) / textureSize(tex, 0).y;\n"
+		"	vec2 at = (gl_FragCoord.xy - 0.5 * textureSize(bloom_tex, 0)) / textureSize(bloom_tex, 0).y;\n"
 		//make blur amount more near the edges and less in the middle:
-		"	float amt = (0.01 * textureSize(tex,0).y) * max(0.0,(length(at) - 0.3)/0.2);\n"
+		"	float amt = 10;\n"//(0.01 * textureSize(bloom_tex,0).y) * max(0.0,(length(at) - 0.3)/0.2);\n"
 		//pick a vector to move in for blur using function inspired by:
 		//https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
 		"	vec2 ofs = amt * normalize(vec2(\n"
 		"		fract(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))),\n"
 		"		fract(dot(gl_FragCoord.xy ,vec2(96.3869,-27.5796)))\n"
 		"	));\n"
-		"   ofs = vec2(0,0);\n"
 		//do a four-pixel average to blur:
 		"	vec4 blur =\n"
-		"		+ 0.25 * texture(tex, (gl_FragCoord.xy + vec2(ofs.x,ofs.y)) / textureSize(tex, 0))\n"
-		"		+ 0.25 * texture(tex, (gl_FragCoord.xy + vec2(-ofs.y,ofs.x)) / textureSize(tex, 0))\n"
-		"		+ 0.25 * texture(tex, (gl_FragCoord.xy + vec2(-ofs.x,-ofs.y)) / textureSize(tex, 0))\n"
-		"		+ 0.25 * texture(tex, (gl_FragCoord.xy + vec2(ofs.y,-ofs.x)) / textureSize(tex, 0))\n"
+		"		+ 0.25 * texture(bloom_tex, (gl_FragCoord.xy + vec2(ofs.x,ofs.y)) / textureSize(bloom_tex, 0))\n"
+		"		+ 0.25 * texture(bloom_tex, (gl_FragCoord.xy + vec2(-ofs.y,ofs.x)) / textureSize(bloom_tex, 0))\n"
+		"		+ 0.25 * texture(bloom_tex, (gl_FragCoord.xy + vec2(-ofs.x,-ofs.y)) / textureSize(bloom_tex, 0))\n"
+		"		+ 0.25 * texture(bloom_tex, (gl_FragCoord.xy + vec2(ofs.y,-ofs.x)) / textureSize(bloom_tex, 0))\n"
 		"	;\n"
-		"	fragColor = vec4(blur.rgb, 1.0);\n" //blur;\n"
+        "   vec4 fragColor1 = texture(color_tex, (gl_FragCoord.xy) /     textureSize(color_tex, 0));\n"
+		"	fragColor = fragColor1 + vec4(blur.rgb, 1.0);\n" //blur;\n"
+//        "   fragColor = texelFetch(bloom_tex, ivec2(gl_FragCoord.xy), 0);\n"
 		"}\n"
 	);
 
 	glUseProgram(program);
 
-	glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
-	glUseProgram(0);
+	glUniform1i(glGetUniformLocation(program, "color_tex"), 0);
+	glUniform1i(glGetUniformLocation(program, "bloom_tex"), 1);
+
+    glUseProgram(0);
 
 	return new GLuint(program);
 });
@@ -233,11 +306,10 @@ void GameMode::load_scene() {
 	texture_program_info.textures[0] = *white_tex;
 
     Scene::Object::ProgramInfo bloom_program_info;
-    bloom_program_info.program = bloom_program->program;
-    bloom_program_info.vao = *meshes_for_bloom_program;
-	bloom_program_info.mvp_mat4  = bloom_program->object_to_clip_mat4;
-	bloom_program_info.mv_mat4x3 = bloom_program->object_to_light_mat4x3;
-	bloom_program_info.itmv_mat3 = bloom_program->normal_to_light_mat3;
+    bloom_program_info.program = *bloom_program;
+	bloom_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
+	bloom_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
+	bloom_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
     bloom_program_info.textures[0] = *white_tex;
 
 	Scene::Object::ProgramInfo depth_program_info;
@@ -247,7 +319,6 @@ void GameMode::load_scene() {
 
 	// Adjust for veges
 	texture_program_info.vao = *vegetable_meshes_for_texture_program;
-    bloom_program_info.vao = *vegetable_meshes_for_bloom_program;
 	depth_program_info.vao = *vegetable_meshes_for_depth_program;
 
 	// Add in portal
@@ -256,12 +327,16 @@ void GameMode::load_scene() {
 
 	{ // Portal 1
 		Scene::Object *obj = ret->new_object(p0_trans);
-		obj->programs[Scene::Object::ProgramTypeDefault] = bloom_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal1");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+        obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -269,12 +344,16 @@ void GameMode::load_scene() {
 
 	{ // Portal 2
 		Scene::Object *obj = ret->new_object(p1_trans);
-		obj->programs[Scene::Object::ProgramTypeDefault] = bloom_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal2");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+        obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
+		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -519,6 +598,10 @@ struct Framebuffers {
 	GLuint depth_rb = 0;
 	GLuint fb = 0;
 
+    //This framebuffer is used for bloom effects:
+	GLuint bloom_color_tex = 0;
+	GLuint bloom_fb = 0;
+
 	//This framebuffer is used for shadow maps:
 	glm::uvec2 shadow_size = glm::uvec2(0,0);
 	GLuint shadow_color_tex = 0; //DEBUG
@@ -539,6 +622,15 @@ struct Framebuffers {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
+            if (bloom_color_tex == 0) glGenTextures(1, &bloom_color_tex);
+			glBindTexture(GL_TEXTURE_2D, bloom_color_tex);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
 			if (depth_rb == 0) glGenRenderbuffers(1, &depth_rb);
 			glBindRenderbuffer(GL_RENDERBUFFER, depth_rb);
 			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size.x, size.y);
@@ -547,6 +639,13 @@ struct Framebuffers {
 			if (fb == 0) glGenFramebuffers(1, &fb);
 			glBindFramebuffer(GL_FRAMEBUFFER, fb);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rb);
+			check_fb();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            if (bloom_fb == 0) glGenFramebuffers(1, &bloom_fb);
+			glBindFramebuffer(GL_FRAMEBUFFER, bloom_fb);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bloom_color_tex, 0);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rb);
 			check_fb();
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -593,15 +692,22 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	fbs.allocate(drawable_size, glm::uvec2(512, 512));
 	camera->aspect = drawable_size.x / float(drawable_size.y);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
 	glViewport(0,0,drawable_size.x, drawable_size.y);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbs.bloom_fb);
+
+	glClearColor(0.f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fbs.fb);
+
+    glClearColor(0.f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(0.f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw once for ambient light
 	glUseProgram(texture_program->program);
@@ -618,21 +724,8 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
 
-    glUseProgram(bloom_program->program);
-	//don't use distant directional light at all (color == 0):
-	glUniform3fv(texture_program->sun_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
-	glUniform3fv(texture_program->sun_direction_vec3, 1, glm::value_ptr(glm::normalize(glm::vec3(0.0f, 0.0f,-1.0f))));
-	//little bit of ambient light:
-	glUniform3fv(texture_program->sky_color_vec3, 1, glm::value_ptr(glm::vec3(1.f,1.f,1.f)));
-	glUniform3fv(texture_program->sky_direction_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
-
-	glUniform3fv(texture_program->spot_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
-
 	// Draw non-portalled things
-	scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
+    scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
 
     auto draw_portal = [this](Portal &p) {
 		glUseProgram(*portal_depth_program);
@@ -710,14 +803,20 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	}
 
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	GL_ERRORS();
 
-
+	// Draw non-portalled things
+    glBindFramebuffer(GL_FRAMEBUFFER, fbs.bloom_fb);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
 	//Copy scene from color buffer to screen, performing post-processing effects:
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, fbs.color_tex);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, fbs.bloom_color_tex);
 	glBindVertexArray(*empty_vao);
     glUseProgram(*blur_program);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
