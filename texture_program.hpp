@@ -7,6 +7,7 @@ struct TextureProgram {
 	GLuint program = 0;
 
 	//uniform locations:
+    GLuint glow_amt_float = -1U;
 	GLuint object_to_clip_mat4 = -1U;
 	GLuint object_to_light_mat4x3 = -1U;
 	GLuint normal_to_light_mat3 = -1U;

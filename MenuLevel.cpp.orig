@@ -1,5 +1,6 @@
 #include "MenuLevel.hpp"
 
+<<<<<<< HEAD
 using namespace glm;
 
 MenuLevel::MenuLevel(GameMode *_gm, Scene::Object::ProgramInfo const &texture_program_info,
@@ -29,6 +30,13 @@ MenuLevel::MenuLevel(GameMode *_gm, Scene::Object::ProgramInfo const &texture_pr
 	obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
 	obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
 	gm->foods.push_back(obj);
+=======
+MenuLevel::MenuLevel(GameMode *_gm,
+        Scene::Object::ProgramInfo const &texture_program_info,
+        Scene::Object::ProgramInfo const &depth_program_info) :
+        BasicLevel(_gm, texture_program_info, depth_program_info) {
+
+>>>>>>> 0ff6c73994f3638b8ce4be8afe1e44b4b58e9e08
 }
 
 void MenuLevel::update(float elapsed) {

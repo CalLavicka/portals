@@ -37,6 +37,7 @@ TextureProgram::TextureProgram() {
 		"uniform vec3 spot_direction;\n"
 		"uniform vec3 spot_color;\n"
 		"uniform vec2 spot_outer_inner;\n"
+        "uniform float glow_amt;\n"
 		"uniform sampler2D tex;\n"
 		"uniform sampler2DShadow spot_depth_tex;\n"
 		"in vec3 position;\n"
@@ -44,7 +45,8 @@ TextureProgram::TextureProgram() {
 		"in vec4 color;\n"
 		"in vec2 texCoord;\n"
 		"in vec4 spotPosition;\n"
-		"out vec4 fragColor;\n"
+		"layout(location = 0) out vec4 fragColor;\n"
+        "layout(location = 1) out vec4 bloomColor;\n"
 		"void main() {\n"
 		"	vec3 total_light = vec3(0.0, 0.0, 0.0);\n"
 		"	vec3 n = normalize(normal);\n"
@@ -66,15 +68,14 @@ TextureProgram::TextureProgram() {
 		"		float amt = smoothstep(spot_outer_inner.x, spot_outer_inner.y, d);\n"
 		"		float shadow = textureProj(spot_depth_tex, spotPosition);\n"
 		"		total_light += shadow * nl * amt * spot_color;\n"
-		//"		fragColor = vec4(s,s,s, 1.0);\n" //DEBUG: just show shadow
 		"	}\n"
-
 		"	fragColor = texture(tex, texCoord) * vec4(color.rgb * total_light, color.a);\n"
-
+        "   bloomColor = vec4(glow_amt*fragColor.rgb, 1.0);\n"
     	//"	fragColor = vec4(vec3(gl_FragCoord.z), 1.0);\n"
 		"}\n"
 	);
 
+    glow_amt_float = glGetUniformLocation(program, "glow_amt");
 	object_to_clip_mat4 = glGetUniformLocation(program, "object_to_clip");
 	object_to_light_mat4x3 = glGetUniformLocation(program, "object_to_light");
 	normal_to_light_mat3 = glGetUniformLocation(program, "normal_to_light");

@@ -31,7 +31,7 @@ struct Scene {
 		Transform *prev_sibling = nullptr;
 		Transform *next_sibling = nullptr;
 		//Generally, you shouldn't manipulate the above pointers directly.
-	
+
 	    //physical properties
 		glm::vec2 speed = glm::vec2(0.0f, 10.0f);
 		BoundingBox *boundingbox = nullptr;
