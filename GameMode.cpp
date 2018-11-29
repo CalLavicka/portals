@@ -13,6 +13,7 @@
 #include "draw_text.hpp" //helper to... um.. draw text
 #include "load_save_png.hpp"
 #include "texture_program.hpp"
+#include "bloom_program.hpp"
 #include "depth_program.hpp"
 
 #include "BasicLevel.hpp"
@@ -41,6 +42,10 @@ Load< GLuint > meshes_for_texture_program(LoadTagDefault, [](){
 	return new GLuint(meshes->make_vao_for_program(texture_program->program));
 });
 
+Load< GLuint > meshes_for_bloom_program(LoadTagDefault, [](){
+	return new GLuint(meshes->make_vao_for_program(bloom_program->program));
+});
+
 Load< GLuint > meshes_for_depth_program(LoadTagDefault, [](){
 	return new GLuint(meshes->make_vao_for_program(depth_program->program));
 });
@@ -51,6 +56,10 @@ Load< MeshBuffer > vegetable_meshes(LoadTagDefault, [](){
 
 Load< GLuint > vegetable_meshes_for_texture_program(LoadTagDefault, [](){
 	return new GLuint(vegetable_meshes->make_vao_for_program(texture_program->program));
+});
+
+Load< GLuint > vegetable_meshes_for_bloom_program(LoadTagDefault, [](){
+	return new GLuint(vegetable_meshes->make_vao_for_program(bloom_program->program));
 });
 
 Load< GLuint > vegetable_meshes_for_depth_program(LoadTagDefault, [](){
@@ -65,83 +74,6 @@ Load< GLuint > empty_vao(LoadTagDefault, [](){
 	glBindVertexArray(0);
 	return new GLuint(vao);
 });
-
-Load< GLuint > bloom_program(LoadTagDefault, [](){
-        GLuint program = compile_program(
-                //this draws a triangle that covers the entire screen:
-                "#version 330\n"
-                "void main() {\n"
-                "	gl_Position = vec4(4 * (gl_VertexID & 1) - 1,  2 * (gl_VertexID & 2) - 1, 0.0, 1.0);\n"
-                "}\n"
-                ,
-                //NOTE on reading screen texture:
-                //texelFetch() gives direct pixel access with integer coordinates, but accessing out-of-bounds pixel is undefined:
-                //	vec4 color = texelFetch(tex, ivec2(gl_FragCoord.xy), 0);
-                //texture() requires using [0,1] coordinates, but handles out-of-bounds more gracefully (using wrap settings of underlying texture):
-                //	vec4 color = texture(tex, gl_FragCoord.xy / textureSize(tex,0));
-
-                "#version 330\n"
-                "uniform sampler2D tex;\n"
-               "out vec4 fragColor;\n"
-                "void main() {\n"
-                "	vec2 at = (gl_FragCoord.xy - 0.5 * textureSize(tex, 0)) / textureSize(tex, 0).y;\n"
-
-                //pick a vector to move in for blur using function inspired by:
-                //https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
-                "float distance = 8.0f;\n"
-                "	vec2 ofs = distance * normalize(vec2(\n"
-                "		fract(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))),\n"
-                "		fract(dot(gl_FragCoord.xy ,vec2(96.3869,-27.5796)))\n"
-                "	));\n"
-                //referenced guidance on Piazza:
-                //https://piazza.com/class/jlfaf4xoz4y665?cid=65
-                //I did read this too though:
-                //https://learnopengl.com/Advanced-Lighting/Bloom
-                "vec4 center = texture(tex, gl_FragCoord.xy/textureSize(tex, 0));\n"
-
-                "vec4 blur = center;\n"
-                "float centerB = dot(blur.rgb, vec3(1.0, 1.0, 1.0));\n"
-                "float brightness;\n"
-                "float threshold = 1.0;\n"
-                "float influence = .2;\n"
-
-                "vec4 n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.x, ofs.y))\n"
-                "/textureSize(tex,0));\n"
-                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
-                "if(brightness<3.0 && brightness>threshold)\n"
-                "blur += influence*n1;\n"
-
-                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.y, ofs.x))\n"
-                "/textureSize(tex,0));\n"
-                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
-                "if(brightness<3.0 && brightness>threshold)\n"
-                "blur += influence*n1;\n"
-
-                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.x, -ofs.y))\n"
-                "/textureSize(tex,0));\n"
-                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
-                "if(brightness<3.0 && brightness>threshold) \n"
-                "blur += influence*n1;\n"
-
-                "n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.y, -ofs.x))\n"
-                "/textureSize(tex,0));\n"
-                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
-                "if(brightness<3.0 && brightness>threshold)\n"
-                "blur += influence*n1;\n"
-
-                "	fragColor = vec4(blur.rgb, 1.0);\n"
-                "}\n"
-                );
-
-        glUseProgram(program);
-
-        glUniform1i(glGetUniformLocation(program, "tex"), 0);
-
-        glUseProgram(0);
-
-        return new GLuint(program);
-});
-
 
 Load< GLuint > blur_program(LoadTagDefault, [](){
 	GLuint program = compile_program(
@@ -301,12 +233,12 @@ void GameMode::load_scene() {
 	texture_program_info.textures[0] = *white_tex;
 
     Scene::Object::ProgramInfo bloom_program_info;
-    bloom_program_info.program = *bloom_program;
-    bloom_program_info.vao = *meshes_for_texture_program;
-	bloom_program_info.mvp_mat4  = texture_program->object_to_clip_mat4;
-	bloom_program_info.mv_mat4x3 = texture_program->object_to_light_mat4x3;
-	bloom_program_info.itmv_mat3 = texture_program->normal_to_light_mat3;
-
+    bloom_program_info.program = bloom_program->program;
+    bloom_program_info.vao = *meshes_for_bloom_program;
+	bloom_program_info.mvp_mat4  = bloom_program->object_to_clip_mat4;
+	bloom_program_info.mv_mat4x3 = bloom_program->object_to_light_mat4x3;
+	bloom_program_info.itmv_mat3 = bloom_program->normal_to_light_mat3;
+    bloom_program_info.textures[0] = *white_tex;
 
 	Scene::Object::ProgramInfo depth_program_info;
 	depth_program_info.program = depth_program->program;
@@ -315,6 +247,7 @@ void GameMode::load_scene() {
 
 	// Adjust for veges
 	texture_program_info.vao = *vegetable_meshes_for_texture_program;
+    bloom_program_info.vao = *vegetable_meshes_for_bloom_program;
 	depth_program_info.vao = *vegetable_meshes_for_depth_program;
 
 	// Add in portal
@@ -323,17 +256,12 @@ void GameMode::load_scene() {
 
 	{ // Portal 1
 		Scene::Object *obj = ret->new_object(p0_trans);
-		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault] = bloom_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal1");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-		obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
-		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
-
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -341,16 +269,12 @@ void GameMode::load_scene() {
 
 	{ // Portal 2
 		Scene::Object *obj = ret->new_object(p1_trans);
-		obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
-        obj->programs[Scene::Object::ProgramTypeBloom] = bloom_program_info;
+		obj->programs[Scene::Object::ProgramTypeDefault] = bloom_program_info;
 		obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 		MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup("Portal2");
 		obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-		obj->programs[Scene::Object::ProgramTypeBloom].start = mesh.start;
-		obj->programs[Scene::Object::ProgramTypeBloom].count = mesh.count;
 
 		obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 		obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
@@ -369,21 +293,24 @@ void GameMode::load_scene() {
 	scene = ret;
 
 	switch(level) {
-	case 0:
-		current_level = new BasicLevel(this, texture_program_info, depth_program_info);
+        case 0:
+		current_level = new BasicLevel(this, texture_program_info,
+                bloom_program_info, depth_program_info);
 		scores[0] = 50;
 		break;
 	case 1:
-		current_level = new OvenLevel(this, texture_program_info, depth_program_info);
+		current_level = new OvenLevel(this, texture_program_info,
+                bloom_program_info, depth_program_info);
 		scores[1] = 0;
 		break;
     case 2:
         current_level = new GarnishLevel(this, texture_program_info,
-                                        depth_program_info);
+                bloom_program_info, depth_program_info);
         scores[2] = 0;
         break;
 	default:
-		current_level = new MenuLevel(this, texture_program_info, depth_program_info);
+		current_level = new MenuLevel(this, texture_program_info,
+                bloom_program_info, depth_program_info);
 		show_level_select();
 		break;
 	}
@@ -690,6 +617,20 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
+
+    glUseProgram(bloom_program->program);
+	//don't use distant directional light at all (color == 0):
+	glUniform3fv(texture_program->sun_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
+	glUniform3fv(texture_program->sun_direction_vec3, 1, glm::value_ptr(glm::normalize(glm::vec3(0.0f, 0.0f,-1.0f))));
+	//little bit of ambient light:
+	glUniform3fv(texture_program->sky_color_vec3, 1, glm::value_ptr(glm::vec3(1.f,1.f,1.f)));
+	glUniform3fv(texture_program->sky_direction_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 1.0f)));
+
+	glUniform3fv(texture_program->spot_color_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0);
+
 	// Draw non-portalled things
 	scene->draw(camera, Scene::Object::ProgramTypeDefault, nullptr);
 

@@ -3,8 +3,10 @@
 #include "Level.hpp"
 
 struct OvenLevel : public Level {
-    OvenLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info_,
-                        Scene::Object::ProgramInfo const &depth_program_info_);
+    OvenLevel(GameMode *gm,
+            Scene::Object::ProgramInfo const &texture_program_info_,
+            Scene::Object::ProgramInfo const &bloom_program_info_,
+            Scene::Object::ProgramInfo const &depth_program_info_);
 
     Scene::Object::ProgramInfo texture_program_info;
     Scene::Object::ProgramInfo depth_program_info;

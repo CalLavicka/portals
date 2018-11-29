@@ -1,9 +1,9 @@
-#include "texture_program.hpp"
+#include "bloom_program.hpp"
 
 #include "compile_program.hpp"
 #include "gl_errors.hpp"
 
-TextureProgram::TextureProgram() {
+BloomProgram::BloomProgram() {
 	program = compile_program(
 		"#version 330\n"
 		"uniform mat4 object_to_clip;\n"
@@ -66,11 +66,51 @@ TextureProgram::TextureProgram() {
 		"		float amt = smoothstep(spot_outer_inner.x, spot_outer_inner.y, d);\n"
 		"		float shadow = textureProj(spot_depth_tex, spotPosition);\n"
 		"		total_light += shadow * nl * amt * spot_color;\n"
-		//"		fragColor = vec4(s,s,s, 1.0);\n" //DEBUG: just show shadow
 		"	}\n"
+        //"   fragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
 		"	fragColor = texture(tex, texCoord) * vec4(color.rgb * total_light, color.a);\n"
+ //pick a vector to move in for blur using function inspired by:
+                //https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
+                "float distance = 8.0f;\n"
+                "	vec2 ofs = distance * normalize(vec2(\n"
+                "		fract(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))),\n"
+                "		fract(dot(gl_FragCoord.xy ,vec2(96.3869,-27.5796)))\n"
+                "	));\n"
+                //referenced guidance on Piazza:
+                //https://piazza.com/class/jlfaf4xoz4y665?cid=65
+                //I did read this too though:
+                //https://learnopengl.com/Advanced-Lighting/Bloom
+                "vec4 blur = fragColor;\n"
+                "float centerB = dot(blur.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "float brightness;\n"
+                "float threshold = 0.0;\n"
+                "float influence = .2;\n"
 
-    	//"	fragColor = vec4(vec3(gl_FragCoord.z), 1.0);\n"
+                "vec4 n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.x, ofs.y))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.y, ofs.x))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(-ofs.x, -ofs.y))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold) \n"
+                "blur += influence*n1;\n"
+
+                "n1 = texture(tex, (gl_FragCoord.xy+vec2(ofs.y, -ofs.x))\n"
+                "/textureSize(tex,0));\n"
+                "brightness = dot(n1.rgb, vec3(1.0, 1.0, 1.0));\n"
+                "if(brightness<3.0 && brightness>threshold)\n"
+                "blur += influence*n1;\n"
+
+                "	fragColor = vec4(blur.rgb, 1.0);\n"
 		"}\n"
 	);
 
@@ -103,6 +143,6 @@ TextureProgram::TextureProgram() {
 	GL_ERRORS();
 }
 
-Load< TextureProgram > texture_program(LoadTagInit, [](){
-	return new TextureProgram();
+Load< BloomProgram > bloom_program(LoadTagInit, [](){
+	return new BloomProgram();
 });

@@ -4,9 +4,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
-                            Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
-    
+BasicLevel::BasicLevel(GameMode *gm,
+        Scene::Object::ProgramInfo const &texture_program_info,
+            Scene::Object::ProgramInfo const &bloom_program_info,
+            Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
+
 	{ // Add the three pots
 		for(int i=0; i<3; i++) {
 			Scene::Object *obj = gm->scene->new_object(gm->scene->new_transform());

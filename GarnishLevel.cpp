@@ -27,6 +27,7 @@ return new GLuint(garnish_meshes->make_vao_for_program(depth_program->program));
 
 GarnishLevel::GarnishLevel(GameMode *gm,
                     Scene::Object::ProgramInfo const &texture_program_info_,
+                    Scene::Object::ProgramInfo const &bloom_program_info_,
                     Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm),
                     texture_program_info(texture_program_info_),
                     depth_program_info(depth_program_info_) {
