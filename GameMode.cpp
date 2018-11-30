@@ -389,7 +389,7 @@ void GameMode::load_scene() {
         //                                 depth_program_info);
         current_level = std::make_shared< GarnishLevel>(this, texture_program_info,
                                         depth_program_info);
-        scores[2] = 0;
+        scores[2] = 100;
         break;
 	default:
 		// current_level = new MenuLevel(this, texture_program_info, depth_program_info);
@@ -794,7 +794,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glUseProgram(texture_program->program);
 	current_level->render_pass();
 
-	if (level < 2) {
+	if (level < 3) {
 		glDisable(GL_DEPTH_TEST);
 
 		{ // draw score
@@ -835,6 +835,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 	glUseProgram(0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
 void GameMode::teleport(Scene::Transform *object_transform, const uint32_t to_portal_id, bool update_speed) {

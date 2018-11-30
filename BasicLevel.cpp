@@ -12,7 +12,7 @@ std::string food_names[] = {"Broccoli", "Potato", "Carrot", "Mushroom"};
 
 //Credit:
 // THE HAPPY SONG by Nicolai Heidlas Music https://soundcloud.com/nicolai-heidlas
-// Creative Commons — Attribution 3.0 Unported— CC BY 3.0 
+// Creative Commons — Attribution 3.0 Unported— CC BY 3.0
 // http://creativecommons.org/licenses/b...
 // Music promoted by Audio Library https://youtu.be/cGuaRsXLScQ
 Load< Sound::Sample > basic_bgm(LoadTagDefault, [](){
@@ -21,7 +21,7 @@ Load< Sound::Sample > basic_bgm(LoadTagDefault, [](){
 
 BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_program_info,
                             Scene::Object::ProgramInfo const &depth_program_info) : Level(gm) {
-    
+
 
     this->texture_program_info = texture_program_info;
     this->depth_program_info = depth_program_info;
@@ -55,7 +55,7 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 	}
 
 	messagetime = 5.f;
-    
+
 	bgm = basic_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
 }
 
@@ -120,8 +120,9 @@ bool BasicLevel::collision(Scene::Object *o1, Scene::Object *o2) {
 }
 
 void BasicLevel::fall_off(Scene::Object *o) {
-	gm->scores[gm->level] -= 10;
-	if(gm->scores[gm->level] <= 0) {
+	if(gm->scores[gm->level] >= 10) gm->scores[gm->level] -= 10;
+    else if(gm->scores[gm->level] > 0) gm->scores[gm->level] = 0;
+	if(gm->scores[gm->level] == 0) {
 		gm->show_lose();
 	}
 }

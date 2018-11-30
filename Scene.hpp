@@ -110,6 +110,7 @@ struct Scene {
 		Portal *portal_in = nullptr;
 
 		std::string data = "";
+        float lifespan = -1.0f;
 	};
 
 	//"Lamp"s contain information about lights:

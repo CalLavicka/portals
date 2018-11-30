@@ -253,6 +253,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, Object::ProgramType program_typ
 
 		//draw the object:
 		glDrawArrays(GL_TRIANGLES, info.start, info.count);
+
 	}
 
 	//unbind any still bound textures and go back to active texture unit zero:
