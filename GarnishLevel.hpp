@@ -16,9 +16,13 @@ struct GarnishLevel : public Level {
 
 	virtual void update(float elapsed) override;
 	virtual void fall_off(Scene::Object *o) override;
+    virtual void render_pass() override;
+
 
     void spawn_food();
 
+    uint32_t message;
+    float messagetime;
     float total_time = 0.f;
     float time = 0.f;
     float score = 0.f;

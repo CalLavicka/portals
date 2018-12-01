@@ -7,7 +7,7 @@
 #include "compile_program.hpp"
 #include "gl_errors.hpp"
 
-
+#include "draw_text.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -52,6 +52,8 @@ GarnishLevel::GarnishLevel(GameMode *gm,
 		steak->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
 		steak->transform->boundingbox->update_origin(steak->transform->position, glm::vec2(0.0f, 1.0f));
 	}
+    message = 0;
+    messagetime = 3.f;
 
 }
 
@@ -81,6 +83,7 @@ void GarnishLevel::spawn_food() {
 
 void GarnishLevel::update(float elapsed) {
     total_time += elapsed;
+    messagetime -= elapsed;
     time-=elapsed;
     if(time<=0.f){
         time+=0.6f;
@@ -95,12 +98,19 @@ void GarnishLevel::update(float elapsed) {
             &&food_transform->position.x < steak->transform->position.x+10.f) {
                 (*iter)->lifespan = 0.0f;
                 gm->scores[gm->level]+=10;
-                if(gm->scores[gm->level]>=200) gm->show_win();
+                if(message==0 && gm->scores[gm->level]==200){
+                    message++;
+                    messagetime=3.f;
+                }else if(message==1 && gm->scores[gm->level]==300){
+                    message++;
+                    messagetime=3.f;
+                }else if(message==2 &&gm->scores[gm->level]==400){
+                    gm->show_win();
+                }
 		}
 
         (*iter)->lifespan -= elapsed;
 		if ((*iter)->lifespan < 0.f) {
-			printf("Food oxidized...\n");
 			gm->scene->delete_transform(food_transform);
 			gm->scene->delete_object(*iter);
 			auto temp = iter;
@@ -119,4 +129,25 @@ void GarnishLevel::fall_off(Scene::Object *o) {
 	if(gm->scores[gm->level] == 0) {
 		gm->show_lose();
 	}
+}
+
+void GarnishLevel::render_pass() {
+
+	glDisable(GL_DEPTH_TEST);
+
+	if (messagetime > 0.f) {
+        std::string text;
+        if(message==0) text= "TIME FOR SOME CHIVES";
+        if(message==1) text= "TIME FOR SOME SALT";
+        if(message==2) text= "TIME FOR SOME PEPPER";
+
+        float height = 0.15f;
+
+        float ypos = -0.3f;
+        float width = text_width(text, height);
+        draw_text(text, glm::vec2( -width/2.f, ypos), height,
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    }
+
+	glEnable(GL_DEPTH_TEST);
 }
