@@ -52,12 +52,11 @@ GarnishLevel::GarnishLevel(GameMode *gm,
 		steak->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
 		steak->transform->boundingbox->update_origin(steak->transform->position, glm::vec2(0.0f, 1.0f));
 	}
-    message = 0;
     messagetime = 3.f;
 
 }
 
-std::string spice_names[] = {"Chive2c"}; //TODO redo salt and pepper in maya
+std::string spice_names[] = {"Chive2c", "Salt", "Pepper"};
 
 void GarnishLevel::spawn_food() {
 
@@ -68,7 +67,7 @@ void GarnishLevel::spawn_food() {
 	obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
 
-	MeshBuffer::Mesh const &mesh = garnish_meshes->lookup(spice_names[gm->random_gen() % 1]);
+	MeshBuffer::Mesh const &mesh = garnish_meshes->lookup(spice_names[message]);
 	obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 	obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
 
@@ -89,7 +88,17 @@ void GarnishLevel::update(float elapsed) {
         time+=0.6f;
         spawn_food();
     }
-    pos.x = 65.0f*(sinf(total_time*0.1f));
+    if(message==0){
+        pos.x = 65.0f*(sinf(total_time*0.1f));
+    }else if(message==1){
+        salt_time -= elapsed;
+        if(salt_time<=0.f){
+            salt_time = 3.f;
+            pos.x = gm->random_gen()%150 - 75.f;
+        }
+    }else{
+        pos.x = gm->random_gen()%150 - 75.f;
+    }
 
     for(auto iter = gm->foods.begin(); iter != gm->foods.end();) {
 		Scene::Transform *food_transform = (*iter)->transform;

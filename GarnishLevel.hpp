@@ -23,6 +23,7 @@ struct GarnishLevel : public Level {
 
     uint32_t message;
     float messagetime;
+    float salt_time = 3.f;
     float total_time = 0.f;
     float time = 0.f;
     float score = 0.f;
