@@ -153,16 +153,30 @@ OvenLevel::OvenLevel(GameMode *gm,
 
 	    steak->transform->position = glm::vec3(0.f,10.f,0.f);
 	    steak->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0.f,1.f,0.f));
-	    steak->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
+        steak->transform->scale = glm::vec3(2.0f,2.0f,2.0f);
+	    steak->transform->boundingbox = new BoundingBox(4.0f, 4.0f);
 	    steak->transform->boundingbox->update_origin(steak->transform->position, glm::vec2(0.0f, 1.0f));
 	    gm->foods.push_back(steak);
 
         //printf("HELLO: %d\n", mesh.start);
 	}
 
+    Scene::Object::ProgramInfo oven_program_info =
+        texture_program_info;
+    oven_program_info.set_uniforms = [](){
+        glUniform1f(texture_program->glow_amt_float, 0.0f);
+        glUniform3fv(texture_program->sky_color_vec3, 1,
+                glm::value_ptr(glm::vec3(0.7f,0.6f,0.6f)));
+        glUniform3fv(texture_program->sky_direction_vec3, 1,
+                glm::value_ptr(glm::vec3(-0.6f, 0.5f, 1.0f)));
+
+
+    };
+
     { // Add oven
 		Scene::Object * oven = gm->scene->new_object(gm->scene->new_transform());
-		oven->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+		oven->programs[Scene::Object::ProgramTypeDefault] = oven_program_info;
+            //texture_program_info;
 
 		oven->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
@@ -171,8 +185,8 @@ OvenLevel::OvenLevel(GameMode *gm,
 		oven->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
 	    oven->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0.f,0.f,1.f))
                                         * glm::angleAxis(glm::radians(-90.f), glm::vec3(0.f,1.f,0.f));
-        oven->transform->scale = vec3(2,9,8);
-        oven->transform->position = vec3(0,7,0);
+        oven->transform->scale = vec3(3.f, 7.5f, 8.f);
+        oven->transform->position = vec3(0,7.0f,0.0f);
     }
 
     messagetime = 5.f;
