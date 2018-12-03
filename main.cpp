@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
 	struct {
 		//TODO: this is where you set the title and size of your game window
 		std::string title = "Portals!";
-		glm::uvec2 size = glm::uvec2(1280, 800);
+		glm::uvec2 size = glm::uvec2(1920, 1200);
 	} config;
 
 	/*

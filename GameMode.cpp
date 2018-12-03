@@ -801,7 +801,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 			std::string message = "SCORE "+std::to_string(scores[level]);
 			float height = 0.05f;
 			float width = text_width(message, height);
-			draw_text(message, glm::vec2( 1.2f - width, 0.8f), height,
+			draw_text(message, glm::vec2( 1.4f - width, 0.85f), height,
 				glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 
@@ -809,7 +809,7 @@ void GameMode::draw(glm::uvec2 const &drawable_size) {
 			std::string message = "HIGH SCORE "+std::to_string(high_scores[level]);
 			float height = 0.05f;
 			//float width = text_width(message, height);
-			draw_text(message, glm::vec2( -1.2f, 0.8f), height,
+			draw_text(message, glm::vec2( -1.4f, 0.85f), height,
 					glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 

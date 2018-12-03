@@ -150,7 +150,7 @@ void GarnishLevel::render_pass() {
         if(message==1) text= "TIME FOR SOME SALT";
         if(message==2) text= "TIME FOR SOME PEPPER";
 
-        float height = 0.15f;
+        float height = 0.1f;
 
         float ypos = -0.3f;
         float width = text_width(text, height);

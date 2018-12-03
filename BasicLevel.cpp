@@ -133,14 +133,14 @@ void BasicLevel::render_pass() {
 
 	if (messagetime > 0.f) {
         std::string messages[] = {"GET THE VEGETABLES", "INTO THE", "CORRECT POTS"};
-        float height = 0.15f;
+        float height = 0.1f;
 
         float ypos = -0.3f;
         for(std::string message : messages) {
             float width = text_width(message, height);
             draw_text(message, glm::vec2( -width/2.f, ypos), height,
                 glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-            ypos -= 0.2f;
+            ypos -= 0.15f;
         }
     }
 

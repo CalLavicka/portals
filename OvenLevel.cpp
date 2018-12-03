@@ -269,7 +269,7 @@ void OvenLevel::render_pass() {
 
     if (messagetime > 0.f) {
         std::string messages[] = {"DONT BURN", "THE MEAT", "FOR 120 SECONDS"};
-        float height = 0.15f;
+        float height = 0.1f;
 
         float ypos = -0.3f;
         for(std::string message : messages) {
