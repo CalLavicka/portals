@@ -2,6 +2,7 @@
 #include "BoundingBox.hpp"
 #include "Load.hpp"
 #include "data_path.hpp"
+#include "load_save_png.hpp"
 
 #include "draw_text.hpp"
 
@@ -40,8 +41,7 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 
 			obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 			obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
-			obj->transform->position = glm::vec3(30.f * i - 45.f,-40.f,0.f);
-			obj->transform->scale = glm::vec3(0.3f,0.3f,0.3f);
+			obj->transform->position = glm::vec3(35.f * i - 50.f,-35.f,0.f);
 			obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
 			obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
 			obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
@@ -50,8 +50,16 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 
 			Scene::Object *food = create_food(food_names[i]);
 			food->transform->position = obj->transform->position;
+            food->transform->scale = glm::vec3(0.6f,0.6f,0.6f);
 			food->transform->position.z = 10.f;
 		}
+        Scene::Object *table = create_food("Table");
+        table->transform->position = glm::vec3(0.0f,-55.f, 5.1f);
+
+        Scene::Object *bg = create_food("bg");
+        bg->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+            *kitchen_tex;
+        bg->transform->scale = glm::vec3(0.8f,0.7f, 0.7f);
 	}
 
 	messagetime = 5.f;
@@ -134,7 +142,6 @@ void BasicLevel::render_pass() {
 	if (messagetime > 0.f) {
         std::string messages[] = {"GET THE VEGETABLES", "INTO THE", "CORRECT POTS"};
         float height = 0.1f;
-
         float ypos = -0.3f;
         for(std::string message : messages) {
             float width = text_width(message, height);

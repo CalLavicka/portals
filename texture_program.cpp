@@ -69,7 +69,7 @@ TextureProgram::TextureProgram() {
 		"		float shadow = textureProj(spot_depth_tex, spotPosition);\n"
 		"		total_light += shadow * nl * amt * spot_color;\n"
 		"	}\n"
-		"	fragColor = texture(tex, texCoord) * vec4(color.rgb * total_light, color.a);\n"
+		"	fragColor = texture(tex, texCoord) * vec4(color.rgb * 1.08f*total_light, color.a);\n"
         "   bloomColor = vec4(glow_amt*fragColor.rgb, 1.0);\n"
     	//"	fragColor = vec4(vec3(gl_FragCoord.z), 1.0);\n"
 		"}\n"
