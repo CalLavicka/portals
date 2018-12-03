@@ -25,6 +25,10 @@ Load< GLuint > garnish_meshes_for_depth_program(LoadTagDefault, [](){
 return new GLuint(garnish_meshes->make_vao_for_program(depth_program->program));
 });
 
+Load< Sound::Sample > garnish_bgm(LoadTagDefault, [](){
+	return new Sound::Sample(data_path("sound_effects/jazz_in_paris.wav"));
+});
+
 GarnishLevel::GarnishLevel(GameMode *gm,
                     Scene::Object::ProgramInfo const &texture_program_info_,
                     Scene::Object::ProgramInfo const &depth_program_info_) : Level(gm),
@@ -64,6 +68,8 @@ GarnishLevel::GarnishLevel(GameMode *gm,
         bg->transform->scale = glm::vec3(0.8f,0.7f, 0.7f);
 	}
     messagetime = 3.f;
+
+	bgm = garnish_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
 }
 
 std::string spice_names[] = {"Chive2c", "Salt", "Pepper"};

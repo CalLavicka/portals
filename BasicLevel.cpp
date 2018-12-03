@@ -67,10 +67,6 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 	bgm = basic_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
 }
 
-BasicLevel::~BasicLevel() {
-	if (this->bgm) this->bgm->stop();  // stop bgm
-}
-
 Scene::Object *BasicLevel::create_food(std::string veg_name) {
 	Scene::Object *obj = gm->scene->new_object(gm->scene->new_transform());
 	obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;

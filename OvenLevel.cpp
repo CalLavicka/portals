@@ -29,7 +29,7 @@ Load< Sound::Sample > oven_bgm(LoadTagDefault, [](){
 	return new Sound::Sample(data_path("sound_effects/taiko_warrior_trimmed.wav"));
 });
 
-Load< Sound::Sample > oven_init_bgm(LoadTagDefault, [](){
+Load< Sound::Sample > oven_prelude(LoadTagDefault, [](){
 	return new Sound::Sample(data_path("sound_effects/taiko_initial_pipe.wav"));
 });
 
@@ -191,11 +191,7 @@ OvenLevel::OvenLevel(GameMode *gm,
 
     messagetime = 5.f;
 
-	oven_init_bgm->play(gm->camera->transform->position, 1.0f);  // play bgm
-}
-
-OvenLevel::~OvenLevel() {
-	if (this->bgm) this->bgm->stop();  // stop bgm
+	oven_prelude->play(gm->camera->transform->position, 1.0f);  // play bgm
 }
 
 void OvenLevel::update(float elapsed) {
@@ -245,9 +241,9 @@ void OvenLevel::update(float elapsed) {
 
     messagetime -= elapsed;
 
-    if (play_loop_bgm_countdown > 0.0f) {
-        play_loop_bgm_countdown -= elapsed;
-        if (play_loop_bgm_countdown <= 0.0f) {
+    if (prelude_countdown > 0.0f) {
+        prelude_countdown -= elapsed;
+        if (prelude_countdown <= 0.0f) {
             bgm = oven_bgm->play(gm->camera->transform->position, 1.0f, Sound::Loop);  // play bgm
         }
     }
