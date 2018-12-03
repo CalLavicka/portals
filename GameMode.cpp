@@ -186,6 +186,10 @@ Load< GLuint > kitchen_tex(LoadTagDefault, [](){
 	return new GLuint(load_texture(data_path("textures/kitchen.png")));
 });
 
+Load< GLuint > darkkitchen_tex(LoadTagDefault, [](){
+	return new GLuint(load_texture(data_path("textures/darkkitchen.png")));
+});
+
 Load< GLuint > white_tex(LoadTagDefault, [](){
 	GLuint tex = 0;
 	glGenTextures(1, &tex);

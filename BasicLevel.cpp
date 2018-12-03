@@ -54,7 +54,7 @@ BasicLevel::BasicLevel(GameMode *gm, Scene::Object::ProgramInfo const &texture_p
 			food->transform->position.z = 10.f;
 		}
         Scene::Object *table = create_food("Table");
-        table->transform->position = glm::vec3(0.0f,-55.f, 5.1f);
+        table->transform->position = glm::vec3(0.0f,-75.f, 5.1f);
 
         Scene::Object *bg = create_food("bg");
         bg->programs[Scene::Object::ProgramTypeDefault].textures[0] =

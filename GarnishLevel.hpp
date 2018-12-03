@@ -19,6 +19,8 @@ struct GarnishLevel : public Level {
     virtual void render_pass() override;
 
 
+    Scene::Object *create_food(std::string veg_name);
+    Scene::Object *create_bg(std::string veg_name);
     void spawn_food();
 
     uint32_t message;

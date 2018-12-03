@@ -81,5 +81,6 @@ extern Load< GLuint > vegetable_meshes_for_depth_program;
 
 extern Load< GLuint > white_tex;
 extern Load< GLuint > kitchen_tex;
+extern Load< GLuint > darkkitchen_tex;
 
 extern Load< GLuint > empty_vao;

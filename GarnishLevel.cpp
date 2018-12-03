@@ -32,49 +32,87 @@ GarnishLevel::GarnishLevel(GameMode *gm,
                     depth_program_info(depth_program_info_) {
 
     texture_program_info.vao = *garnish_meshes_for_texture_program;
+
+    texture_program_info.set_uniforms = [](){
+        glUniform1f(texture_program->glow_amt_float, 0.0f);
+        glUniform3fv(texture_program->sky_color_vec3, 1,
+                glm::value_ptr(glm::vec3(1.f,1.f,1.f)));
+        glUniform3fv(texture_program->sky_direction_vec3, 1,
+                glm::value_ptr(glm::vec3(0.f, 1.f, 1.0f)));
+    };
+
+
 	{ // set up steak and plate
-    //TODO model plate and kitchen scene
-		steak = gm->scene->new_object(gm->scene->new_transform());
-	    steak->programs[Scene::Object::ProgramTypeDefault] =
-            texture_program_info;
-
-		steak->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
-
-		MeshBuffer::Mesh const &mesh = garnish_meshes->lookup("steak");
-		steak->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
-		steak->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
-
-		steak->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
-		steak->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
-		steak->transform->position = glm::vec3(0.f,-40.f,0.f);
+        steak = create_food("steak");
+        steak->transform->position = glm::vec3(0.f, -37.f, 0.f);
         steak->transform->scale = glm::vec3(3.0f,3.0f,3.0f);
-		steak->transform->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(0.f,1.f,0.f));
+		steak->transform->rotation = glm::angleAxis(glm::radians(90.f),
+                                    glm::vec3(0.1f,0.f,1.f));
 		steak->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
 		steak->transform->boundingbox->update_origin(steak->transform->position, glm::vec2(0.0f, 1.0f));
+        Scene::Object *plate = create_food("Plate");
+        plate->transform->position = glm::vec3(0.f, -38.f, 8.f);
+        plate->transform->scale = glm::vec3(1.5f, 1.5f,1.5f);
+        plate->transform->rotation = glm::angleAxis(glm::radians(-85.f),
+                                    glm::vec3(1.0f,0.f,0.f));
+        Scene::Object *table = create_bg("Table");
+        table->transform->position = glm::vec3(0.0f,-70.f, 5.1f);
+
+        Scene::Object *bg = create_bg("bg");
+        bg->programs[Scene::Object::ProgramTypeDefault].textures[0] =
+            *darkkitchen_tex;
+        bg->transform->scale = glm::vec3(0.8f,0.7f, 0.7f);
 	}
     messagetime = 3.f;
-
 }
 
 std::string spice_names[] = {"Chive2c", "Salt", "Pepper"};
 
-void GarnishLevel::spawn_food() {
+Scene::Object *GarnishLevel::create_bg(std::string veg_name) {
+	texture_program_info.vao = *vegetable_meshes_for_texture_program;
+	depth_program_info.vao = *vegetable_meshes_for_depth_program;
 
 	Scene::Object *obj = gm->scene->new_object(gm->scene->new_transform());
-    obj->lifespan = 8.0f;
+	obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+	obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
 
-    obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
 	obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
 
-
-	MeshBuffer::Mesh const &mesh = garnish_meshes->lookup(spice_names[message]);
+	MeshBuffer::Mesh const &mesh = vegetable_meshes->lookup(veg_name);
 	obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
 	obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
 
 	obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
 	obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
-	obj->transform->position = pos + glm::vec3(gm->random_gen() % 10,0.f,0.f);
 	obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
+
+	return obj;
+}
+
+Scene::Object *GarnishLevel::create_food(std::string veg_name) {
+	Scene::Object *obj = gm->scene->new_object(gm->scene->new_transform());
+    texture_program_info.vao = *garnish_meshes_for_texture_program;
+	depth_program_info.vao = *garnish_meshes_for_depth_program;
+
+	obj->programs[Scene::Object::ProgramTypeDefault] = texture_program_info;
+	obj->programs[Scene::Object::ProgramTypeDefault].textures[0] = *white_tex;
+
+	obj->programs[Scene::Object::ProgramTypeShadow] = depth_program_info;
+
+	MeshBuffer::Mesh const &mesh = garnish_meshes->lookup(veg_name);
+	obj->programs[Scene::Object::ProgramTypeDefault].start = mesh.start;
+	obj->programs[Scene::Object::ProgramTypeDefault].count = mesh.count;
+
+	obj->programs[Scene::Object::ProgramTypeShadow].start = mesh.start;
+	obj->programs[Scene::Object::ProgramTypeShadow].count = mesh.count;
+	obj->transform->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1.f,0.f,0.f));
+
+	return obj;
+}
+void GarnishLevel::spawn_food() {
+    Scene::Object *obj = create_food(spice_names[message]);
+    obj->lifespan = 8.0f;
+    obj->transform->position = pos + glm::vec3(gm->random_gen() % 10,0.f,0.f);
 	obj->transform->boundingbox = new BoundingBox(2.0f, 2.0f);
 	obj->transform->boundingbox->update_origin(obj->transform->position, glm::vec2(0.0f, 1.0f));
 	gm->foods.push_back(obj);
