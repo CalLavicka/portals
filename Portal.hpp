@@ -31,5 +31,5 @@ struct Portal {
 	bool is_in_vicinity(const Scene::Transform *object_transform);
 	bool should_teleport(const Scene::Object *obj);
 
-    bool should_bounce(const Scene::Transform *object_transform);
+    bool should_bounce(const Scene::Object *obj);
 };

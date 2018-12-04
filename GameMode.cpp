@@ -432,13 +432,14 @@ void GameMode::update(float elapsed) {
 					teleport(food_transform, 1);  // GameMode::teleport(object, destination_portal)
 					update_vicinity(*iter, players[1], players[0]);
 					updated = true;
-				} else if (players[0].is_in_vicinity(food_transform)) {
+				} else if (players[0].should_bounce(*iter)) {
+                    food_transform->speed -= 1.8f*glm::dot(food_transform->speed,
+                                        players[0].normal)*players[0].normal;
+
+					food_transform->position -= vec3(glm::dot(vec2(food_transform->position) - players[0].position, players[0].normal)*players[0].normal,0);
+                }else if (players[0].is_in_vicinity(food_transform)) {
 					update_vicinity(*iter, players[0], players[1]);
 					updated = true;
-                } else if (players[0].should_bounce(food_transform)) {
-                    food_transform->speed -= 2*glm::dot(food_transform->speed,
-                                        players[0].normal)*players[0].normal;
-                    food_transform->speed *= 0.8f;
                 }
 			}
 			if (!updated && glm::distance(players[1].portal_transform->position, food_transform->position) < threshold) {
@@ -446,17 +447,18 @@ void GameMode::update(float elapsed) {
 					teleport(food_transform, 0);  // GameMode::teleport(object, destination_portal)
 					update_vicinity(*iter, players[0], players[1]);
 					updated = true;
-				} else if (players[1].is_in_vicinity(food_transform)) {
-					update_vicinity(*iter, players[1], players[0]);
-					updated = true;
-                } else if (players[1].should_bounce(food_transform)) {
+				} else if (players[1].should_bounce(*iter)) {
                     //credit to this for how to physics
                     //https://gamedev.stackexchange.com/questions/23672/determine-resulting-angle-of-wall-collision/23674
-                    food_transform->speed -= 2*glm::dot(food_transform->speed,
-                                        players[0].normal)*players[0].normal;
-                    food_transform->speed *= 0.8f;
+                    food_transform->speed -= 1.8f*glm::dot(food_transform->speed,
+                                        players[1].normal)*players[1].normal;
 
-                }
+					food_transform->position -= vec3(glm::dot(vec2(food_transform->position) - players[1].position, players[1].normal)*players[1].normal,0);
+
+                } else if (players[1].is_in_vicinity(food_transform)) {
+					update_vicinity(*iter, players[1], players[0]);
+					updated = true;
+                } 
 			}
 			if (!updated) {
 				if((*iter)->portal_in != nullptr) {

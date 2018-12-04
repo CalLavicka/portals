@@ -23,7 +23,7 @@ struct GarnishLevel : public Level {
     Scene::Object *create_bg(std::string veg_name);
     void spawn_food();
 
-    uint32_t message;
+    uint32_t message = 0;
     float messagetime;
     float salt_time = 3.f;
     float total_time = 0.f;
