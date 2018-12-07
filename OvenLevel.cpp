@@ -236,7 +236,7 @@ void OvenLevel::update(float elapsed) {
         gm->show_win();
     }
 
-    top = sin((120.f - time) * 0.2f) * 30.f + 20.f;
+    top = sin((60.f - time) * 0.2f) * 30.f + 20.f;
     bottom = top - 40.f;
 
     messagetime -= elapsed;
@@ -278,7 +278,7 @@ void OvenLevel::render_pass() {
 	//glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
 
     if (messagetime > 0.f) {
-        std::string messages[] = {"DONT BURN", "THE MEAT", "FOR 120 SECONDS"};
+        std::string messages[] = {"DONT BURN", "THE MEAT", "FOR 60 SECONDS"};
         float height = 0.1f;
 
         float ypos = -0.3f;

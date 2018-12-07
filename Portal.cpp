@@ -127,7 +127,7 @@ bool Portal::should_bounce(const Scene::Object *obj) {
     //float center_dist = glm::distance(object_center, this->position);
     float norm_dot = glm::dot(object_center - this->position, this->normal);
     //float perpendicular_dist = std::sqrt(center_dist*center_dist - parallel_dist*parallel_dist);
-    return norm_dot > 0.0f && glm::dot(this->normal, object_transform->speed - speed) > 0.0f;  // return true when half way through
+    return norm_dot > 0.0f && norm_dot < 1.f && glm::dot(this->normal, object_transform->speed - speed) > 0.0f;  // return true when half way through
 
     /*
     const BoundingBox *object_bbx = object_transform->boundingbox;

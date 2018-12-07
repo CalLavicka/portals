@@ -14,7 +14,7 @@ struct OvenLevel : public Level {
     Scene::Object *steak = nullptr;
 
     float heat = 0.f;
-    float time = 120.f;
+    float time = 60.f;
     float score_timer = 1.f;
 
     float top = 20.f;
